@@ -17,7 +17,6 @@ class Turba(ModuleInfo):
         ModuleInfo.__init__(self, 'turba', 'games', registry_used=True)
 
     def run(self):
-        creds = []
         results = None
 
         # Find the location of steam - to make it easier we're going to use a try block
@@ -43,6 +42,7 @@ class Turba(ModuleInfo):
                 self.debug(u'Turba doesn\'t appear to be installed.')
                 return
 
+            creds = []
             # If we're here we should have a valid config file file
             with open(filepath, mode='rb') as filepath:
                 # We've found a config file, now extract the creds

@@ -15,8 +15,7 @@ class OpenVPN(ModuleInfo):
 
     def check_openvpn_installed(self):
         try:
-            key = OpenKey(HKEY_CURRENT_USER, 'Software\\OpenVPN-GUI\\Configs')
-            return key
+            return OpenKey(HKEY_CURRENT_USER, 'Software\\OpenVPN-GUI\\Configs')
         except Exception as e:
             self.debug(str(e))
             return False
@@ -49,8 +48,6 @@ class OpenVPN(ModuleInfo):
         return pwd_found
 
     def run(self):
-        openvpn_key = self.check_openvpn_installed()
-        if openvpn_key:
-            results = self.get_credentials(openvpn_key)
-            if results:
+        if openvpn_key := self.check_openvpn_installed():
+            if results := self.get_credentials(openvpn_key):
                 return results

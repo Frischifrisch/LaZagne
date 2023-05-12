@@ -50,10 +50,7 @@ class Skype(ModuleInfo):
     def get_hash_credential(self, xml_file):
         tree = ElementTree(file=xml_file)
         encrypted_hash = tree.find('Lib/Account/Credentials3')
-        if encrypted_hash is not None:
-            return encrypted_hash.text
-        else:
-            return False
+        return encrypted_hash.text if encrypted_hash is not None else False
 
     # decrypt hash to get the md5 to bruteforce
     def get_md5_hash(self, enc_hex, key):
@@ -64,13 +61,13 @@ class Skype(ModuleInfo):
         salt = hashlib.sha1('\x00\x00\x00\x00' + key).digest() + hashlib.sha1('\x00\x00\x00\x01' + key).digest()
 
         # encrypt value used with the XOR operation
-        aes_key = self.aes_encrypt(struct.pack('I', 0) * 4, salt[0:32])[0:16]
+        aes_key = self.aes_encrypt(struct.pack('I', 0) * 4, salt[:32])[:16]
 
-        # XOR operation
-        decrypted = []
-        for d in range(16):
-            decrypted.append(struct.unpack('B', enc_binary[d])[0] ^ struct.unpack('B', aes_key[d])[0])
-
+        decrypted = [
+            struct.unpack('B', enc_binary[d])[0]
+            ^ struct.unpack('B', aes_key[d])[0]
+            for d in range(16)
+        ]
         # cast the result byte
         tmp = ''
         for dec in decrypted:
@@ -99,41 +96,36 @@ class Skype(ModuleInfo):
         return False
 
     def get_info(self, key, username, path):
-        if os.path.exists(os.path.join(path, u'config.xml')):
-            values = {}
+        if not os.path.exists(os.path.join(path, u'config.xml')):
+            return
+        values = {}
 
-            try:
-                values['Login'] = username
+        try:
+            values['Login'] = username
 
-                # get encrypted hash from the config file
-                enc_hex = self.get_hash_credential(os.path.join(path, u'config.xml'))
+            if enc_hex := self.get_hash_credential(
+                os.path.join(path, u'config.xml')
+            ):
+                # decrypt the hash to get the md5 to brue force
+                values['Hash'] = self.get_md5_hash(enc_hex, key)
+                values['Pattern to bruteforce using md5'] = win.string_to_unicode(values['Login']) + u'\\nskyper\\n<password>'
 
-                if not enc_hex:
-                    self.warning(u'No credential stored on the config.xml file.')
-                else:
-                    # decrypt the hash to get the md5 to brue force
-                    values['Hash'] = self.get_md5_hash(enc_hex, key)
-                    values['Pattern to bruteforce using md5'] = win.string_to_unicode(values['Login']) + u'\\nskyper\\n<password>'
+                if password := self.dictionary_attack(
+                    values['Login'], values['Hash']
+                ):
+                    values['Password'] = password
 
-                    # Try a dictionary attack on the hash
-                    password = self.dictionary_attack(values['Login'], values['Hash'])
-                    if password:
-                        values['Password'] = password
-
-                    self.pwd_found.append(values)
-            except Exception as e:
-                self.debug(str(e))
+                self.pwd_found.append(values)
+            else:
+                self.warning(u'No credential stored on the config.xml file.')
+        except Exception as e:
+            self.debug(str(e))
 
     def run(self):
         path = os.path.join(constant.profile['APPDATA'], u'Skype')
         if os.path.exists(path):
-            # retrieve the key used to build the salt
-            key = self.get_regkey()
-            if not key:
-                self.error(u'The salt has not been retrieved')
-            else:
-                username = self.get_username(path)
-                if username:
+            if key := self.get_regkey():
+                if username := self.get_username(path):
                     d = os.path.join(path, username)
                     if os.path.exists(d):
                         self.get_info(key, username, d)
@@ -143,3 +135,5 @@ class Skype(ModuleInfo):
                         self.get_info(key, d, os.path.join(path, d))
 
                 return self.pwd_found
+            else:
+                self.error(u'The salt has not been retrieved')

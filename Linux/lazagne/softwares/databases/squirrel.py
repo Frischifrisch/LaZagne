@@ -22,11 +22,9 @@ class Squirrel(ModuleInfo):
             tree = ElementTree(file=path)
             elements = {'name': 'Name', 'url': 'URL', 'userName': 'Login', 'password': 'Password'}
             for elem in tree.iter('Bean'):
-                values = {}
-                for e in elem:
-                    if e.tag in elements:
-                        values[elements[e.tag]] = e.text
-                if values:
+                if values := {
+                    elements[e.tag]: e.text for e in elem if e.tag in elements
+                }:
                     pwd_found.append(values)
 
         return pwd_found

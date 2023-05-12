@@ -17,13 +17,12 @@ class LSASecrets(ModuleInfo):
         if constant.lsa_secrets:
             return ['__LSASecrets__', constant.lsa_secrets]
 
-        is_vista_or_higher = False
-        if float(get_os_version()) >= 6.0:
-            is_vista_or_higher = True
-
-        # Get LSA Secrets
-        secrets = get_file_secrets(constant.hives['system'], constant.hives['security'], is_vista_or_higher)
-        if secrets:
+        is_vista_or_higher = float(get_os_version()) >= 6.0
+        if secrets := get_file_secrets(
+            constant.hives['system'],
+            constant.hives['security'],
+            is_vista_or_higher,
+        ):
             # Clear DPAPI master key 
             clear = secrets[b'DPAPI_SYSTEM']
             size = struct.unpack_from("<L", clear)[0]

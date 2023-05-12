@@ -307,15 +307,11 @@ class KeyChain():
         return False
 
     def checkValidKeychain(self):
-        if self.fbuf[0:4] != KEYCHAIN_SIGNATURE:
-            return False
-        return True
+        return self.fbuf[:4] == KEYCHAIN_SIGNATURE
 
     # get apple DB Header
     def getHeader(self):
-        header = _memcpy(self.fbuf[:sizeof(_APPL_DB_HEADER)], _APPL_DB_HEADER)
-
-        return header
+        return _memcpy(self.fbuf[:sizeof(_APPL_DB_HEADER)], _APPL_DB_HEADER)
 
     def getSchemaInfo(self, offset):
         table_list = []
@@ -400,19 +396,21 @@ class KeyChain():
         else:
             record.append('')
 
-        record.append(self.getKeychainTime(BASE_ADDR, RecordMeta.CreationDate & 0xFFFFFFFE))
-        record.append(self.getKeychainTime(BASE_ADDR, RecordMeta.ModDate & 0xFFFFFFFE))
-
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Description & 0xFFFFFFFE))
-
-        record.append(self.getFourCharCode(BASE_ADDR, RecordMeta.Creator & 0xFFFFFFFE))
-        record.append(self.getFourCharCode(BASE_ADDR, RecordMeta.Type & 0xFFFFFFFE))
-
-        record.append(self.getLV(BASE_ADDR, RecordMeta.PrintName & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Alias & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Account & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Service & 0xFFFFFFFE))
-
+        record.extend(
+            (
+                self.getKeychainTime(
+                    BASE_ADDR, RecordMeta.CreationDate & 0xFFFFFFFE
+                ),
+                self.getKeychainTime(BASE_ADDR, RecordMeta.ModDate & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Description & 0xFFFFFFFE),
+                self.getFourCharCode(BASE_ADDR, RecordMeta.Creator & 0xFFFFFFFE),
+                self.getFourCharCode(BASE_ADDR, RecordMeta.Type & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.PrintName & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Alias & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Account & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Service & 0xFFFFFFFE),
+            )
+        )
         return record
 
     def getInternetPWRecord(self, base_addr, offset):
@@ -429,27 +427,31 @@ class KeyChain():
         else:
             record.append('')
 
-        record.append(self.getKeychainTime(BASE_ADDR, RecordMeta.CreationDate & 0xFFFFFFFE))
-        record.append(self.getKeychainTime(BASE_ADDR, RecordMeta.ModDate & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Description & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Comment & 0xFFFFFFFE))
-        record.append(self.getFourCharCode(BASE_ADDR, RecordMeta.Creator & 0xFFFFFFFE))
-        record.append(self.getFourCharCode(BASE_ADDR, RecordMeta.Type & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.PrintName & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Alias & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Protected & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Account & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.SecurityDomain & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Server & 0xFFFFFFFE))
-        record.append(self.getFourCharCode(BASE_ADDR, RecordMeta.Protocol & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.AuthType & 0xFFFFFFFE))
-        record.append(self.getInt(BASE_ADDR, RecordMeta.Port & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Path & 0xFFFFFFFE))
+        record.extend(
+            (
+                self.getKeychainTime(
+                    BASE_ADDR, RecordMeta.CreationDate & 0xFFFFFFFE
+                ),
+                self.getKeychainTime(BASE_ADDR, RecordMeta.ModDate & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Description & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Comment & 0xFFFFFFFE),
+                self.getFourCharCode(BASE_ADDR, RecordMeta.Creator & 0xFFFFFFFE),
+                self.getFourCharCode(BASE_ADDR, RecordMeta.Type & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.PrintName & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Alias & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Protected & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Account & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.SecurityDomain & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Server & 0xFFFFFFFE),
+                self.getFourCharCode(BASE_ADDR, RecordMeta.Protocol & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.AuthType & 0xFFFFFFFE),
+                self.getInt(BASE_ADDR, RecordMeta.Port & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Path & 0xFFFFFFFE),
+            )
+        )
         return record
 
     def getx509Record(self, base_addr, offset):
-        record = []
-
         BASE_ADDR = sizeof(_APPL_DB_HEADER) + base_addr + offset
 
         RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR + sizeof(_X509_CERT_HEADER)], _X509_CERT_HEADER)
@@ -457,43 +459,41 @@ class KeyChain():
         x509Certificate = self.fbuf[BASE_ADDR + sizeof(_X509_CERT_HEADER):BASE_ADDR + sizeof(
             _X509_CERT_HEADER) + RecordMeta.CertSize]
 
-        record.append(self.getInt(BASE_ADDR, RecordMeta.CertType & 0xFFFFFFFE))  # Cert Type
-        record.append(self.getInt(BASE_ADDR, RecordMeta.CertEncoding & 0xFFFFFFFE))  # Cert Encoding
-
-        record.append(self.getLV(BASE_ADDR, RecordMeta.PrintName & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Alias & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Subject & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Issuer & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.SerialNumber & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.SubjectKeyIdentifier & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.PublicKeyHash & 0xFFFFFFFE))
-
-        record.append(x509Certificate)
-        return record
+        return [
+            self.getInt(BASE_ADDR, RecordMeta.CertType & 0xFFFFFFFE),
+            self.getInt(BASE_ADDR, RecordMeta.CertEncoding & 0xFFFFFFFE),
+            self.getLV(BASE_ADDR, RecordMeta.PrintName & 0xFFFFFFFE),
+            self.getLV(BASE_ADDR, RecordMeta.Alias & 0xFFFFFFFE),
+            self.getLV(BASE_ADDR, RecordMeta.Subject & 0xFFFFFFFE),
+            self.getLV(BASE_ADDR, RecordMeta.Issuer & 0xFFFFFFFE),
+            self.getLV(BASE_ADDR, RecordMeta.SerialNumber & 0xFFFFFFFE),
+            self.getLV(BASE_ADDR, RecordMeta.SubjectKeyIdentifier & 0xFFFFFFFE),
+            self.getLV(BASE_ADDR, RecordMeta.PublicKeyHash & 0xFFFFFFFE),
+            x509Certificate,
+        ]
 
     def getKeyRecord(self, base_addr, offset):  ## PUBLIC and PRIVATE KEY
-        record = []
-
         BASE_ADDR = sizeof(_APPL_DB_HEADER) + base_addr + offset
 
         RecordMeta = _memcpy(self.fbuf[BASE_ADDR:BASE_ADDR + sizeof(_SECKEY_HEADER)], _SECKEY_HEADER)
 
         KeyBlob = self.fbuf[BASE_ADDR + sizeof(_SECKEY_HEADER):BASE_ADDR + sizeof(_SECKEY_HEADER) + RecordMeta.BlobSize]
 
-        record.append(self.getLV(BASE_ADDR, RecordMeta.PrintName & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Label & 0xFFFFFFFE))
-        record.append(self.getInt(BASE_ADDR, RecordMeta.KeyClass & 0xFFFFFFFE))
-        record.append(self.getInt(BASE_ADDR, RecordMeta.Private & 0xFFFFFFFE))
-        record.append(self.getInt(BASE_ADDR, RecordMeta.KeyType & 0xFFFFFFFE))
-        record.append(self.getInt(BASE_ADDR, RecordMeta.KeySizeInBits & 0xFFFFFFFE))
-        record.append(self.getInt(BASE_ADDR, RecordMeta.EffectiveKeySize & 0xFFFFFFFE))
-        record.append(self.getInt(BASE_ADDR, RecordMeta.Extractable & 0xFFFFFFFE))
-        record.append(str(self.getLV(BASE_ADDR, RecordMeta.KeyCreator & 0xFFFFFFFE)).split('\x00')[0])
-
+        record = [
+            self.getLV(BASE_ADDR, RecordMeta.PrintName & 0xFFFFFFFE),
+            self.getLV(BASE_ADDR, RecordMeta.Label & 0xFFFFFFFE),
+            self.getInt(BASE_ADDR, RecordMeta.KeyClass & 0xFFFFFFFE),
+            self.getInt(BASE_ADDR, RecordMeta.Private & 0xFFFFFFFE),
+            self.getInt(BASE_ADDR, RecordMeta.KeyType & 0xFFFFFFFE),
+            self.getInt(BASE_ADDR, RecordMeta.KeySizeInBits & 0xFFFFFFFE),
+            self.getInt(BASE_ADDR, RecordMeta.EffectiveKeySize & 0xFFFFFFFE),
+            self.getInt(BASE_ADDR, RecordMeta.Extractable & 0xFFFFFFFE),
+            str(self.getLV(BASE_ADDR, RecordMeta.KeyCreator & 0xFFFFFFFE)).split(
+                '\x00'
+            )[0],
+        ]
         IV, Key = self.getEncryptedDatainBlob(KeyBlob)
-        record.append(IV)
-        record.append(Key)
-
+        record.extend((IV, Key))
         return record
 
     def getEncryptedDatainBlob(self, BlobBuf):
@@ -508,9 +508,8 @@ class KeyChain():
     def getKeychainTime(self, BASE_ADDR, pCol):
         if pCol <= 0:
             return ''
-        else:
-            data = str(struct.unpack('>16s', self.fbuf[BASE_ADDR + pCol:BASE_ADDR + pCol + struct.calcsize('>16s')])[0])
-            return str(datetime.datetime.strptime(data.strip('\x00'), '%Y%m%d%H%M%SZ'))
+        data = str(struct.unpack('>16s', self.fbuf[BASE_ADDR + pCol:BASE_ADDR + pCol + struct.calcsize('>16s')])[0])
+        return str(datetime.datetime.strptime(data.strip('\x00'), '%Y%m%d%H%M%SZ'))
 
     def getInt(self, BASE_ADDR, pCol):
         if pCol <= 0:
@@ -534,7 +533,7 @@ class KeyChain():
             real_str_len = (str_length / 4) * 4
         else:
             real_str_len = ((str_length / 4) + 1) * 4
-        unpack_value = '>' + str(real_str_len) + 's'
+        unpack_value = f'>{str(real_str_len)}s'
         try:
             data = struct.unpack(unpack_value, self.fbuf[BASE_ADDR + pCol + 4:BASE_ADDR + pCol + 4 + real_str_len])[0]
         except struct.error:
@@ -556,22 +555,27 @@ class KeyChain():
         else:
             record.append('')
 
-        record.append(self.getKeychainTime(BASE_ADDR, RecordMeta.CreationDate & 0xFFFFFFFE))
-        record.append(self.getKeychainTime(BASE_ADDR, RecordMeta.ModDate & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Description & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Comment & 0xFFFFFFFE))
-        record.append(self.getFourCharCode(BASE_ADDR, RecordMeta.Creator & 0xFFFFFFFE))
-        record.append(self.getFourCharCode(BASE_ADDR, RecordMeta.Type & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.PrintName & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Alias & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Protected & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Account & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Volume & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Server & 0xFFFFFFFE))
-        record.append(self.getFourCharCode(BASE_ADDR, RecordMeta.Protocol & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Address & 0xFFFFFFFE))
-        record.append(self.getLV(BASE_ADDR, RecordMeta.Signature & 0xFFFFFFFE))
-
+        record.extend(
+            (
+                self.getKeychainTime(
+                    BASE_ADDR, RecordMeta.CreationDate & 0xFFFFFFFE
+                ),
+                self.getKeychainTime(BASE_ADDR, RecordMeta.ModDate & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Description & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Comment & 0xFFFFFFFE),
+                self.getFourCharCode(BASE_ADDR, RecordMeta.Creator & 0xFFFFFFFE),
+                self.getFourCharCode(BASE_ADDR, RecordMeta.Type & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.PrintName & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Alias & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Protected & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Account & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Volume & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Server & 0xFFFFFFFE),
+                self.getFourCharCode(BASE_ADDR, RecordMeta.Protocol & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Address & 0xFFFFFFFE),
+                self.getLV(BASE_ADDR, RecordMeta.Signature & 0xFFFFFFFE),
+            )
+        )
         return record
 
     ## decrypted dbblob area
@@ -579,9 +583,7 @@ class KeyChain():
     ## http://www.opensource.apple.com/source/libsecurity_keychain/libsecurity_keychain-36620/lib/StorageManager.cpp
     def SSGPDecryption(self, ssgp, dbkey):
         SSGP = _memcpy(ssgp, _SSGP)
-        plain = kcdecrypt(dbkey, SSGP.iv, ssgp[sizeof(_SSGP):])
-
-        return plain
+        return kcdecrypt(dbkey, SSGP.iv, ssgp[sizeof(_SSGP):])
 
     # Documents : http://www.opensource.apple.com/source/securityd/securityd-55137.1/doc/BLOBFORMAT
     # source : http://www.opensource.apple.com/source/libsecurity_cdsa_client/libsecurity_cdsa_client-36213/lib/securestorage.cpp
@@ -594,22 +596,13 @@ class KeyChain():
         if plain.__len__() == 0:
             return ''
 
-        # now we handle the unwrapping. we need to take the first 32 bytes,
-        # and reverse them.
-        revplain = ''
-        for i in range(32):
-            revplain += plain[31 - i]
-
+        revplain = ''.join(plain[31 - i] for i in range(32))
         # now the real key gets found. */
         plain = kcdecrypt(dbkey, iv, revplain)
 
         keyblob = plain[4:]
 
-        if len(keyblob) != KEYLEN:
-            # raise "Bad decrypted keylen!"
-            return ''
-
-        return keyblob
+        return '' if len(keyblob) != KEYLEN else keyblob
 
     # test code
     # http://opensource.apple.com/source/libsecurity_keychain/libsecurity_keychain-55044/lib/KeyItem.cpp
@@ -620,12 +613,7 @@ class KeyChain():
         if plain.__len__() == 0:
             return '', ''
 
-        # now we handle the unwrapping. we need to take the first 32 bytes,
-        # and reverse them.
-        revplain = ''
-        for i in range(len(plain)):
-            revplain += plain[len(plain) - 1 - i]
-
+        revplain = ''.join(plain[len(plain) - 1 - i] for i in range(len(plain)))
         # now the real key gets found. */
         plain = kcdecrypt(dbkey, iv, revplain)
 
@@ -640,8 +628,7 @@ class KeyChain():
         base_addr = sizeof(_APPL_DB_HEADER) + symmetrickey_offset + 0x38  # header
         dbblob = _memcpy(self.fbuf[base_addr:base_addr + sizeof(_DB_BLOB)], _DB_BLOB)
 
-        masterkey = pbkdf2(pw, str(bytearray(dbblob.salt)), 1000, KEYLEN)
-        return masterkey
+        return pbkdf2(pw, str(bytearray(dbblob.salt)), 1000, KEYLEN)
 
     # find DBBlob and extract Wrapping key
     def findWrappingKey(self, master, symmetrickey_offset):
@@ -656,13 +643,7 @@ class KeyChain():
         # decrypt the key
         plain = kcdecrypt(master, dbblob.iv, ciphertext)
 
-        if plain.__len__() < KEYLEN:
-            return ''
-
-        dbkey = plain[:KEYLEN]
-
-        # return encrypted wrapping key
-        return dbkey
+        return '' if plain.__len__() < KEYLEN else plain[:KEYLEN]
 
 
 # SOURCE : extractkeychain.py
@@ -700,7 +681,7 @@ def dump_creds(keychain_file, password=None, key=None):
     keychain = KeyChain(keychain_file)
 
     if keychain.open() is False:
-        print_debug('ERROR', '%s Open Failed' % keychain_file)
+        print_debug('ERROR', f'{keychain_file} Open Failed')
         return False
 
     KeychainHeader = keychain.getHeader()
@@ -723,7 +704,7 @@ def dump_creds(keychain_file, password=None, key=None):
         dbkey = keychain.findWrappingKey(unhexlify(key), TableList[tableEnum[CSSM_DL_DB_RECORD_METADATA]])
 
     # DEBUG
-    print_debug('DEBUG', 'DB Key: %s' % str(repr(dbkey)))
+    print_debug('DEBUG', f'DB Key: {repr(dbkey)}')
 
     key_list = {}  # keyblob list
 
@@ -752,17 +733,17 @@ def dump_creds(keychain_file, password=None, key=None):
             record = keychain.getGenericPWRecord(TableList[tableEnum[CSSM_DL_DB_RECORD_GENERIC_PASSWORD]], genericpw)
             # print '[+] Generic Password Record'
             try:
-                real_key = key_list[record[0][0:20]]
+                real_key = key_list[record[0][:20]]
                 passwd = keychain.SSGPDecryption(record[0], real_key)
             except KeyError:
                 passwd = ''
 
             if passwd:
-                values = {}
-                for cpt in range(1, len(record)):
-                    if record[cpt]:
-                        values[legend[cpt]] = unicode(record[cpt])
-
+                values = {
+                    legend[cpt]: unicode(record[cpt])
+                    for cpt in range(1, len(record))
+                    if record[cpt]
+                }
                 try:
                     values['Password'] = unicode(passwd)
                 except:
@@ -772,8 +753,6 @@ def dump_creds(keychain_file, password=None, key=None):
 
     except KeyError:
         print_debug('INFO', 'Generic Password Table is not available')
-        pass
-
     legend = ['', 'Create DateTime', 'Last Modified DateTime', 'Description', 'Comment', 'Creator', 'Type', 'PrintName',
               'Alias', 'Protected', 'Account', 'SecurityDomain', 'Server', 'Protocol Type', 'Auth Type', 'Port', 'Path']
     try:
@@ -782,17 +761,17 @@ def dump_creds(keychain_file, password=None, key=None):
         for internetpw in internetpw_list:
             record = keychain.getInternetPWRecord(TableList[tableEnum[CSSM_DL_DB_RECORD_INTERNET_PASSWORD]], internetpw)
             try:
-                real_key = key_list[record[0][0:20]]
+                real_key = key_list[record[0][:20]]
                 passwd = keychain.SSGPDecryption(record[0], real_key)
             except KeyError:
                 passwd = ''
 
             if passwd:
-                values = {}
-                for cpt in range(1, len(record)):
-                    if record[cpt]:
-                        values[legend[cpt]] = record[cpt]
-
+                values = {
+                    legend[cpt]: record[cpt]
+                    for cpt in range(1, len(record))
+                    if record[cpt]
+                }
                 try:
                     values['Password'] = unicode(passwd)
                 except Exception:
@@ -802,6 +781,4 @@ def dump_creds(keychain_file, password=None, key=None):
 
     except KeyError:
         print_debug('INFO', 'Internet Password Table is not available')
-        pass
-
     return pwdFound

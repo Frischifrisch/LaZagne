@@ -9,13 +9,15 @@ date = time.strftime("%d%m%Y_%H%M%S")
 tmp = tempfile.gettempdir()
 
 
-class constant():
+
+
+class constant:
     folder_name = '.'
     file_name_results = 'credentials_{current_time}'.format(
         current_time=date
     )  # The extension is added depending on the user output choice
     max_help = 27
-    CURRENT_VERSION = '2.4.4' 
+    CURRENT_VERSION = '2.4.4'
     output = None
     modules_dic = {}
     nb_password_found = 0  # Total password found
@@ -37,13 +39,31 @@ class constant():
     hives = {
         'sam': os.path.join(
             tmp,
-            ''.join([random.choice(string.ascii_lowercase) for x in range(0, random.randint(6, 12))])),
+            ''.join(
+                [
+                    random.choice(string.ascii_lowercase)
+                    for _ in range(0, random.randint(6, 12))
+                ]
+            ),
+        ),
         'security': os.path.join(
             tmp,
-            ''.join([random.choice(string.ascii_lowercase) for x in range(0, random.randint(6, 12))])),
+            ''.join(
+                [
+                    random.choice(string.ascii_lowercase)
+                    for _ in range(0, random.randint(6, 12))
+                ]
+            ),
+        ),
         'system': os.path.join(
             tmp,
-            ''.join([random.choice(string.ascii_lowercase) for x in range(0, random.randint(6, 12))]))
+            ''.join(
+                [
+                    random.choice(string.ascii_lowercase)
+                    for _ in range(0, random.randint(6, 12))
+                ]
+            ),
+        ),
     }
     quiet_mode = False
     st = None  # Standard output

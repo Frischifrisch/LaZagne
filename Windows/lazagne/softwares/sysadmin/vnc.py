@@ -26,15 +26,14 @@ class Vnc(ModuleInfo):
         passpadd = (password + '\x00' * 8)[:8]
         strkey = b''.join([chr_or_byte(x) for x in int(self.vnckey)])
         key = d.deskey(strkey, decrypt)
-        crypted = d.desfunc(passpadd, key)
-        return crypted
+        return d.desfunc(passpadd, key)
 
     def unhex(self, s):
         try:
             s = codecs.decode(s, 'hex')
         except TypeError as e:
             if e.message == 'Odd-length string':
-                self.debug('%s . Chopping last char off... "%s"' % (e.message, s[:-1]))
+                self.debug(f'{e.message} . Chopping last char off... "{s[:-1]}"')
                 s = codecs.decode(s[:-1], 'hex')
             else:
                 return False
@@ -98,8 +97,7 @@ class Vnc(ModuleInfo):
 
             values = {}
             try:
-                password = self.reverse_vncpassword(enc_pwd)
-                if password:
+                if password := self.reverse_vncpassword(enc_pwd):
                     values['Password'] = password
             except Exception:
                 self.info(u'Problems with reverse_vncpassword: {reg_key}'.format(reg_key=reg_key))
@@ -127,7 +125,7 @@ class Vnc(ModuleInfo):
         )
 
         for vnc in vncs:
-            string_to_match = vnc[2] + '='
+            string_to_match = f'{vnc[2]}='
             enc_pwd = ''
             try:
                 with open(vnc[1], 'r') as file:
@@ -140,8 +138,7 @@ class Vnc(ModuleInfo):
 
             values = {}
             try:
-                password = self.reverse_vncpassword(enc_pwd)
-                if password:
+                if password := self.reverse_vncpassword(enc_pwd):
                     values['Password'] = password
             except Exception:
                 self.debug(u'Problems with reverse_vncpassword: {enc_pwd}'.format(enc_pwd=enc_pwd))

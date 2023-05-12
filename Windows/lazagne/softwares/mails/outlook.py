@@ -36,9 +36,7 @@ class Outlook(ModuleInfo):
                     for z in range(0, num_sskey):
                         k = winreg.EnumValue(sskey, z)
                         if 'password' in k[0].lower():
-                            values = self.retrieve_info(sskey, name_skey)
-
-                            if values:
+                            if values := self.retrieve_info(sskey, name_skey):
                                 pwd_found.append(values)
 
             winreg.CloseKey(skey)
@@ -77,19 +75,18 @@ class Outlook(ModuleInfo):
         }
         # https://docs.microsoft.com/en-us/previous-versions/office/jj228679(v=office.15)
         major_versions = {
-            "7.0",  # Office 97
-            "8.0",  # Office 98
-            "9.0",  # Office 2000
-            "10.0",  # Office XP
-            "11.0",  # Office 2003
-            "12.0",  # Office 2007
-            "14.0",  # Office 2010
-            "15.0",  # Office 2013
-            "16.0",  # Office 2016
-            "16.0",  # Office 2019
+            "7.0",
+            "8.0",
+            "9.0",
+            "10.0",
+            "11.0",
+            "12.0",
+            "14.0",
+            "15.0",
+            "16.0",
         }
         key_paths.update("Software\\Microsoft\\Office\\%s\\Outlook\\Profiles\\Outlook" % x for x in major_versions)
         for key_path in key_paths:
             result = self.trySingleKey(keyPath=key_path)
-            if not result is None:
+            if result is not None:
                 return result

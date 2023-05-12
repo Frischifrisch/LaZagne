@@ -13,12 +13,7 @@ def create_module_dic():
     if constant.modules_dic:
         return constant.modules_dic
 
-    modules = {}
-
-    # Define a dictionary for all modules
-    for category in get_categories():
-        modules[category] = {}
-
+    modules = {category: {} for category in get_categories()}
     # Add all modules to the dictionary
     for m in get_modules():
         modules[m.category][m.options['dest']] = m
@@ -31,13 +26,9 @@ def run_module(module, subcategories):
     """
     Run only one module
     """
-    modules_to_launch = []
-
-    # Launch only a specific module
-    for i in subcategories:
-        if subcategories[i] and i in module:
-            modules_to_launch.append(i)
-
+    modules_to_launch = [
+        i for i in subcategories if subcategories[i] and i in module
+    ]
     # Launch all modules
     if not modules_to_launch:
         modules_to_launch = module
@@ -66,8 +57,7 @@ def run_modules(category_selected, subcategories):
 
     # Sort dict in reverse mode to run libsecrets as first module
     for cat in OrderedDict(reversed(sorted(categories.items(), key=lambda t: t[0]))):
-        for r in run_module(modules[cat], subcategories):
-            yield r
+        yield from run_module(modules[cat], subcategories)
 
 
 def run_lazagne(category_selected='all', subcategories={}):
@@ -80,7 +70,5 @@ def run_lazagne(category_selected='all', subcategories={}):
     user = getpass.getuser()
     constant.finalResults = {'User': user}
 
-    for r in run_modules(category_selected, subcategories):
-        yield r
-
+    yield from run_modules(category_selected, subcategories)
     constant.stdout_result.append(constant.finalResults)

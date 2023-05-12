@@ -24,7 +24,6 @@ class CoreFTP(ModuleInfo):
 
     def run(self):
         key = None
-        pwd_found = []
         try:
             key = OpenKey(HKEY_CURRENT_USER, 'Software\\FTPware\\CoreFTP\\Sites')
         except Exception as e:
@@ -33,6 +32,7 @@ class CoreFTP(ModuleInfo):
         if key:
             num_profiles = winreg.QueryInfoKey(key)[0]
             elements = ['Host', 'Port', 'User', 'PW']
+            pwd_found = []
             for n in range(num_profiles):
                 name_skey = winreg.EnumKey(key, n)
                 skey = OpenKey(key, name_skey)

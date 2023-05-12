@@ -99,7 +99,7 @@ class Chrome(ModuleInfo):
             # if chrome is open, the DB will be locked, so get around by making a temp copy
             content.write(db_copy)
 
-        database = sqlite3.connect('%s/chrome' % copy_path)
+        database = sqlite3.connect(f'{copy_path}/chrome')
         if 'Web Data' in chrome_data:
             sql = 'select name_on_card, card_number_encrypted, expiration_month, expiration_year from credit_cards'
         else:
@@ -107,19 +107,18 @@ class Chrome(ModuleInfo):
 
         decrypted_list = []
         with database:
-            for values in database.execute(sql):
-                # values will be (name_on_card, card_number_encrypted, expiration_month, expiration_year)
-                # or (username_value, password_value, origin_url, submit_element)
-                # user will be empty if they have selected "never" store password
-                if values[0] == '' or (values[1][:3] != b'v10'):
-                    continue
-                else:
-                    decrypted_list.append((
-                        str(values[2]).encode('ascii', 'ignore'), values[0].encode('ascii', 'ignore'),
-                        str(self.chrome_decrypt(values[1], iv, key)).encode('ascii', 'ignore'),
-                        values[3])
-                    )
-
+            decrypted_list.extend(
+                (
+                    str(values[2]).encode('ascii', 'ignore'),
+                    values[0].encode('ascii', 'ignore'),
+                    str(self.chrome_decrypt(values[1], iv, key)).encode(
+                        'ascii', 'ignore'
+                    ),
+                    values[3],
+                )
+                for values in database.execute(sql)
+                if values[0] != '' and values[1][:3] == b'v10'
+            )
         shutil.rmtree(copy_path)
         return decrypted_list
 
@@ -135,19 +134,18 @@ class Chrome(ModuleInfo):
             )
 
         for profile in self.chrome_data:
-            for i, x in enumerate(self.chrome_process(str(self.safe_storage_key), "%s" % profile)):
-                if 'Web Data' in profile:
-                    if i == 0:
+            for i, x in enumerate(self.chrome_process(str(self.safe_storage_key), f"{profile}")):
+                if i == 0:
+                    if 'Web Data' in profile:
                         pwd_found.append(
                             {
                                 'Type': self.get_cc(x[2]),
                                 'Card Name': x[1],
                                 'Account': x[2],
-                                'Expiration Date': '%s/%s' % (x[0], x[3])
+                                'Expiration Date': f'{x[0]}/{x[3]}',
                             }
                         )
-                else:
-                    if i == 0:
+                    else:
                         pwd_found.append(
                             {
                                 'Profile': profile.split('/')[-2],

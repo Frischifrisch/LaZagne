@@ -9,7 +9,7 @@ class Hashdump(ModuleInfo):
         ModuleInfo.__init__(self, 'hashdump', 'windows', system_module=True)
 
     def run(self):
-        hashdump = dump_file_hashes(constant.hives['system'], constant.hives['sam'])
-        if hashdump:
-            pwd_found = ['__Hashdump__', hashdump]
-            return pwd_found
+        if hashdump := dump_file_hashes(
+            constant.hives['system'], constant.hives['sam']
+        ):
+            return ['__Hashdump__', hashdump]

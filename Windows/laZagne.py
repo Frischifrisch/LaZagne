@@ -84,8 +84,11 @@ def runLaZagne(category_selected='all', subcategories={}, password=None):
     This function will be removed, still there for compatibility with other tools
     Everything is on the config/run.py file
     """
-    for pwd_dic in run_lazagne(category_selected=category_selected, subcategories=subcategories, password=password):
-        yield pwd_dic
+    yield from run_lazagne(
+        category_selected=category_selected,
+        subcategories=subcategories,
+        password=password,
+    )
 
 
 def clean_args(arg):
@@ -103,8 +106,12 @@ def clean_args(arg):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description=constant.st.banner, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-version', action='version', version='Version ' + str(constant.CURRENT_VERSION),
-                        help='laZagne version')
+    parser.add_argument(
+        '-version',
+        action='version',
+        version=f'Version {str(constant.CURRENT_VERSION)}',
+        help='laZagne version',
+    )
 
     # ------------------------------------------- Permanent options -------------------------------------------
     # Version and verbosity
@@ -193,7 +200,7 @@ if __name__ == '__main__':
             if all_categories[c]['subparser']:
                 parser_tab += all_categories[c]['subparser']
         parser_tab += [PPwd, PWrite]
-        dic_tmp = {c: {'parents': parser_tab, 'help': 'Run %s module' % c}}
+        dic_tmp = {c: {'parents': parser_tab, 'help': f'Run {c} module'}}
         # Concatenate 2 dic
         dic = dict(dic, **dic_tmp)
 
@@ -230,7 +237,7 @@ if __name__ == '__main__':
     category = args['auditType']
     subcategories = clean_args(args)
 
-    for r in runLaZagne(category_selected=category, subcategories=subcategories, password=args.get('password', None)):
+    for _ in runLaZagne(category_selected=category, subcategories=subcategories, password=args.get('password', None)):
         pass
 
     write_in_file(constant.stdout_result)

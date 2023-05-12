@@ -51,11 +51,7 @@ class Pypykatz(ModuleInfo):
 
                 # msv_creds to get sha1 user hash
                 for data in user.get('msv_creds', []):
-                    if data['username']:
-                        login = data['username']
-                    else:
-                        login = user['username']
-
+                    login = data['username'] if data['username'] else user['username']
                     if login not in results:
                         results[login] = {}
 

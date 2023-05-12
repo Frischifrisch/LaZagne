@@ -30,13 +30,12 @@ class Docker(ModuleInfo):
     def run(self):
         all_passwords = []
         for path in self.get_paths():
-            for hub, user, password in self.get_creds(path):
-                all_passwords.append(
-                    {
-                        'User': user,
-                        'Password': password,
-                        'Hub': hub,
-                    }
-                )
-
+            all_passwords.extend(
+                {
+                    'User': user,
+                    'Password': password,
+                    'Hub': hub,
+                }
+                for hub, user, password in self.get_creds(path)
+            )
         return all_passwords

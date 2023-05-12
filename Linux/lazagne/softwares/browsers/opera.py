@@ -30,17 +30,14 @@ class Opera(ModuleInfo):
             # Check the use of master password
             if not os.path.exists(os.path.join(path, u'operaprefs.ini')):
                 self.debug(u'The preference file operaprefs.ini has not been found.')
+            elif self.master_password_used(path) == '0':
+                self.debug(u'No master password defined.')
+            elif self.master_password_used(path) == '1':
+                self.warning(u'A master password is used.')
             else:
-                if self.master_password_used(path) == '0':
-                    self.debug(u'No master password defined.')
-                elif self.master_password_used(path) == '1':
-                    self.warning(u'A master password is used.')
-                else:
-                    self.warning(u'An error occurs, the use of master password is not sure.')
+                self.warning(u'An error occurs, the use of master password is not sure.')
 
-            passwords = self.decipher_old_version(path)
-
-            if passwords:
+            if passwords := self.decipher_old_version(path):
                 all_passwords += self.parse_results(passwords)
             else:
                 self.debug(u'The wand.dat seems to be empty')
@@ -81,7 +78,7 @@ class Opera(ModuleInfo):
             md5hash1 = hashlib.md5(tmp).digest()
             md5hash2 = hashlib.md5(md5hash1 + tmp).digest()
 
-            key = md5hash1 + md5hash2[0:8]
+            key = md5hash1 + md5hash2[:8]
             iv = md5hash2[8:]
 
             data = file[offset + 8 + 4: offset + 8 + 4 + data_len]
@@ -110,8 +107,7 @@ class Opera(ModuleInfo):
                 except Exception:
                     outfile.readline()  # discard first line
             try:
-                master_pass = cp.get('Security Prefs', 'Use Paranoid Mailpassword')
-                return master_pass
+                return cp.get('Security Prefs', 'Use Paranoid Mailpassword')
             except Exception:
                 return False
 
@@ -139,9 +135,7 @@ class Opera(ModuleInfo):
                     values['Password'] = password
                     pwd_found.append(values)
 
-            # URL
-            match = re.search(r'^http', password)
-            if match:
+            if match := re.search(r'^http', password):
                 cpt += 1
                 if cpt == 1:
                     tmp_url = password

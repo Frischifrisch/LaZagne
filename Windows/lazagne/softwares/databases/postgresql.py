@@ -15,7 +15,7 @@ class PostgreSQL(ModuleInfo):
         if os.path.exists(path):
             with open(path) as f:
                 pwd_found = []
-                for line in f.readlines():
+                for line in f:
                     try:
                         items = line.strip().split(':')
                         pwd_found.append({

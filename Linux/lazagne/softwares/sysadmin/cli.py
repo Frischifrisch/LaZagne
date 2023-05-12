@@ -48,7 +48,7 @@ class Cli(ModuleInfo):
 
                     histfile = os.path.join(home, histfile[2:])
 
-                if os.path.isfile(histfile) and not histfile in known:
+                if os.path.isfile(histfile) and histfile not in known:
                     yield user, histfile
                     known.add(histfile)
 
@@ -61,7 +61,7 @@ class Cli(ModuleInfo):
         for user, plainfile in self.get_files():
             try:
                 with open(plainfile) as infile:
-                    for line in infile.readlines():
+                    for line in infile:
                         line = line.strip()
                         if line.startswith('#'):
                             continue
@@ -129,6 +129,5 @@ class Cli(ModuleInfo):
     def run(self):
         all_cmds = []
         for user, line in self.get_lines():
-            for cmd in self.suspicious(user, line):
-                all_cmds.append(cmd)
+            all_cmds.extend(iter(self.suspicious(user, line)))
         return all_cmds

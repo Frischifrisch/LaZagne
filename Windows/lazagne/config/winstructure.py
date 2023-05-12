@@ -324,7 +324,7 @@ class SID_NAME_USE(DWORD):
         return self._sid_types[self.value]
 
     def __repr__(self):
-        return 'SID_NAME_USE(%s)' % self.value
+        return f'SID_NAME_USE({self.value})'
 
 
 PSID_NAME_USE = POINTER(SID_NAME_USE)
@@ -487,7 +487,7 @@ def EnumProcesses():
         if returned < size:
             break
         size = size + 0x1000
-    ProcessIdList = list()
+    ProcessIdList = []
     for ProcessId in ProcessIds:
         if ProcessId is None:
             break
@@ -513,9 +513,15 @@ def LookupAccountSidW(lpSystemName, lpSid):
     if not success or error == ERROR_INSUFFICIENT_BUFFER:
         lpName = create_unicode_buffer(u'', cchName.value + 1)
         lpReferencedDomainName = create_unicode_buffer(u'', cchReferencedDomainName.value + 1)
-        success = _LookupAccountSidW(lpSystemName, lpSid, lpName, byref(cchName), lpReferencedDomainName,
-                                     byref(cchReferencedDomainName), byref(peUse))
-        if success:
+        if success := _LookupAccountSidW(
+            lpSystemName,
+            lpSid,
+            lpName,
+            byref(cchName),
+            lpReferencedDomainName,
+            byref(cchReferencedDomainName),
+            byref(peUse),
+        ):
             return lpName.value, lpReferencedDomainName.value, peUse.value
 
     return None, None, None
@@ -558,10 +564,7 @@ def RtlAdjustPrivilege(privilege_id):
     Enabled = BOOL()
 
     status = _RtlAdjustPrivilege(privilege_id, Enable, CurrentThread, byref(Enabled))
-    if status != 0:
-        return False
-
-    return True
+    return status == 0
 
 
 def getData(blobOut):
@@ -574,23 +577,19 @@ def getData(blobOut):
 
 
 def get_full_path_from_pid(pid):
-    if pid:
-        filename = create_unicode_buffer("", 256)
-        hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, False, int(pid))
-        if not hProcess:
-            return False
+    if not pid:
+        return
+    filename = create_unicode_buffer("", 256)
+    hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, False, int(pid))
+    if not hProcess:
+        return False
 
-        size = GetModuleFileNameEx(hProcess, None, filename, 256)
-        CloseHandle(hProcess)
-        if size:
-            return filename.value
-        else:
-            return False
+    size = GetModuleFileNameEx(hProcess, None, filename, 256)
+    CloseHandle(hProcess)
+    return filename.value if size else False
 
 
-python_version = 2
-if sys.version_info[0]:
-    python_version = sys.version_info[0]
+python_version = sys.version_info[0] if sys.version_info[0] else 2
 
 
 def Win32CryptUnprotectData(cipherText, entropy=False, is_current_user=True, user_dpapi=False):
@@ -611,13 +610,12 @@ def Win32CryptUnprotectData(cipherText, entropy=False, is_current_user=True, use
             if CryptUnprotectData(byref(blobIn), None, byref(blobEntropy), None, None, 0, byref(blobOut)):
                 decrypted = getData(blobOut)
 
-        else:
-            if CryptUnprotectData(byref(blobIn), None, None, None, None, 0, byref(blobOut)):
-                decrypted = getData(blobOut)
+        elif CryptUnprotectData(byref(blobIn), None, None, None, None, 0, byref(blobOut)):
+            decrypted = getData(blobOut)
 
     if not decrypted:
         can_decrypt = True
-        if not (user_dpapi and user_dpapi.unlocked):
+        if not user_dpapi or not user_dpapi.unlocked:
             from lazagne.config.dpapi_structure import are_masterkeys_retrieved
             can_decrypt = are_masterkeys_retrieved()
 
@@ -629,18 +627,6 @@ def Win32CryptUnprotectData(cipherText, entropy=False, is_current_user=True, use
                 return None
             if decrypted is False:
                 decrypted = None
-        else:
-            # raise ValueError('MasterKeys not found')
-            pass
-
-    if not decrypted:
-        if not user_dpapi:
-            # raise ValueError('DPApi unavailable')
-            pass
-        elif not user_dpapi.unlocked:
-            # raise ValueError('DPApi locked')
-            pass
-
     return decrypted
 
 
@@ -655,7 +641,7 @@ def get_os_version():
     if retcode != 0:
         return False
 
-    return '%s.%s' % (str(os_version.dwMajorVersion.real), str(os_version.dwMinorVersion.real))
+    return f'{str(os_version.dwMajorVersion.real)}.{str(os_version.dwMinorVersion.real)}'
 
 
 def isx64machine():
@@ -664,10 +650,7 @@ def isx64machine():
         return True
 
     archi = os.environ.get("PROCESSOR_ARCHITECTURE", '')
-    if '64' in archi:
-        return True
-
-    return False
+    return '64' in archi
 
 
 def OpenKey(key, path, index=0, access=KEY_READ):
@@ -681,24 +664,15 @@ isx64 = isx64machine()
 
 
 def string_to_unicode(string):
-    if python_version == 2:
-        return unicode(string)
-    else:
-        return string  # String on python 3 are already unicode
+    return unicode(string) if python_version == 2 else string
 
 
 def chr_or_byte(integer):
-    if python_version == 2:
-        return chr(integer)
-    else:
-        return bytes([integer])  # Python 3
+    return chr(integer) if python_version == 2 else bytes([integer])
 
 
 def int_or_bytes(integer):
-    if python_version == 2:
-        return integer
-    else:
-        return bytes([integer])  # Python 3
+    return integer if python_version == 2 else bytes([integer])
 
 
 def char_to_int(string):
@@ -709,7 +683,4 @@ def char_to_int(string):
 
 
 def convert_to_byte(string):
-    if python_version == 2:
-        return string
-    else:
-        return string.encode()  # Python 3
+    return string if python_version == 2 else string.encode()

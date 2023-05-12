@@ -39,17 +39,16 @@ class Unattended(ModuleInfo):
         for file in files:
             path = os.path.join(windir, string_to_unicode(file))
             if os.path.exists(path):
-                self.debug(u'Unattended file found: %s' % path)
+                self.debug(f'Unattended file found: {path}')
                 tree = ElementTree(file=path)
                 root = tree.getroot()
 
-                for setting in root.findall('%ssettings' % xmlns):
-                    component = setting.find('%scomponent' % xmlns)
+                for setting in root.findall(f'{xmlns}settings'):
+                    component = setting.find(f'{xmlns}component')
 
-                    auto_logon = component.find('%sauto_logon' % xmlns)
-                    if auto_logon:
-                        username = auto_logon.find('%sUsername' % xmlns)
-                        password = auto_logon.find('%sPassword' % xmlns)
+                    if auto_logon := component.find(f'{xmlns}auto_logon'):
+                        username = auto_logon.find(f'{xmlns}Username')
+                        password = auto_logon.find(f'{xmlns}Password')
                         if all((username, password)):
                             # Remove false positive (with following message on password => *SENSITIVE*DATA*DELETED*)
                             if 'deleted' not in password.text.lower():
@@ -58,13 +57,13 @@ class Unattended(ModuleInfo):
                                     'Password': self.try_b64_decode(password.text)
                                 })
 
-                    user_accounts = component.find('%suser_accounts' % xmlns)
-                    if user_accounts:
-                        local_accounts = user_accounts.find('%slocal_accounts' % xmlns)
-                        if local_accounts:
-                            for local_account in local_accounts.findall('%slocal_account' % xmlns):
-                                username = local_account.find('%sName' % xmlns)
-                                password = local_account.find('%sPassword' % xmlns)
+                    if user_accounts := component.find(f'{xmlns}user_accounts'):
+                        if local_accounts := user_accounts.find(
+                            f'{xmlns}local_accounts'
+                        ):
+                            for local_account in local_accounts.findall(f'{xmlns}local_account'):
+                                username = local_account.find(f'{xmlns}Name')
+                                password = local_account.find(f'{xmlns}Password')
                                 if all((username, password)):
                                     if 'deleted' not in password.text.lower():
                                         pwd_found.append({

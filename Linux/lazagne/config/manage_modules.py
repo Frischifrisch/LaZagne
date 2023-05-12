@@ -13,7 +13,7 @@ except ImportError:
 
 
 def get_categories():
-    category = {
+    return {
         'chats': {'help': 'Chat clients supported'},
         'sysadmin': {'help': 'SCP/SSH/FTP/FTPS clients supported'},
         'databases': {'help': 'SQL clients supported'},
@@ -23,9 +23,10 @@ def get_categories():
         'browsers': {'help': 'Web browsers supported'},
         'wallet': {'help': 'Windows credentials (credential manager, etc.)'},
         'git': {'help': 'GIT clients supported'},
-        'unused': {'help': 'This modules could not be used because of broken dependence'}
+        'unused': {
+            'help': 'This modules could not be used because of broken dependence'
+        },
     }
-    return category
 
 
 def get_modules_names():

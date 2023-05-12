@@ -202,19 +202,19 @@ class Salsa20(object):
         ctx = self.ctx
         if len(key) == 32:  # recommended
             constants = "expand 32-byte k"
-            ctx[1], ctx[2], ctx[3], ctx[4] = little4_i32.unpack(key[0:16])
+            ctx[1], ctx[2], ctx[3], ctx[4] = little4_i32.unpack(key[:16])
             ctx[11], ctx[12], ctx[13], ctx[14] = little4_i32.unpack(key[16:32])
         elif len(key) == 16:
             constants = "expand 16-byte k"
-            ctx[1], ctx[2], ctx[3], ctx[4] = little4_i32.unpack(key[0:16])
-            ctx[11], ctx[12], ctx[13], ctx[14] = little4_i32.unpack(key[0:16])
+            ctx[1], ctx[2], ctx[3], ctx[4] = little4_i32.unpack(key[:16])
+            ctx[11], ctx[12], ctx[13], ctx[14] = little4_i32.unpack(key[:16])
         else:
             raise Exception("key length isn't 32 or 16 bytes.")
         ctx[0], ctx[5], ctx[10], ctx[15] = little4_i32.unpack(constants)
 
     def set_iv(self, iv):
         assert type(iv) == str
-        assert len(iv) * 8 == 64, 'nonce (IV) not 64 bits'
+        assert len(iv) == 8, 'nonce (IV) not 64 bits'
         self.iv = iv
         ctx = self.ctx
         ctx[6], ctx[7] = little2_i32.unpack(iv)

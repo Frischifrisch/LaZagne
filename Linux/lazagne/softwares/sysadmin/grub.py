@@ -56,8 +56,7 @@ class Grub(ModuleInfo):
                 user, password = '', ''
                 if conf.partition('password --md5 ')[1] == 'password --md5 ':
                     hash = conf.partition('password --md5 ')[2].partition('\n')[0]
-                    result = self.dictionary_attack(hash)
-                    if result:
+                    if result := self.dictionary_attack(hash):
                         pwd_found.append({
                             'Password': result
                         })

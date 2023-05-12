@@ -27,16 +27,23 @@ class IISCentralCertP(ModuleInfo):
         """
         founded_files = []
         for dirpath, dirnames, files in os.walk(path):
-            for file_name in files:
-                if fnmatch.fnmatch(file_name, file):
-                    founded_files.append(dirpath + '\\' + file_name)
-
+            founded_files.extend(
+                dirpath + '\\' + file_name
+                for file_name in files
+                if fnmatch.fnmatch(file_name, file)
+            )
         return founded_files
 
     def create_RSAKeyValueFile(self, exe_file, container):
-        tmp_file = "".join(choice(string.ascii_letters + string.digits) for x in range(randint(8, 10))) + ".xml"
+        tmp_file = (
+            "".join(
+                choice(string.ascii_letters + string.digits)
+                for _ in range(randint(8, 10))
+            )
+            + ".xml"
+        )
         try:
-            os.system(exe_file + " -px " + container + " " + tmp_file + " -pri > nul")
+            os.system(f"{exe_file} -px {container} {tmp_file} -pri > nul")
         except OSError:
             self.debug(u'Error executing {container}'.format(container=container))
             tmp_file = ''
@@ -64,11 +71,7 @@ class IISCentralCertP(ModuleInfo):
         return message.decode('UTF-16')
 
     def GetLong(self, nodelist):
-        rc = []
-        for node in nodelist:
-            if node.nodeType == node.TEXT_NODE:
-                rc.append(node.data)
-
+        rc = [node.data for node in nodelist if node.nodeType == node.TEXT_NODE]
         st = ''.join(rc)
         raw = base64.b64decode(st)
         return int(raw.encode('hex'), 16)
@@ -89,8 +92,6 @@ class IISCentralCertP(ModuleInfo):
         return privkey
 
     def run(self):
-        pfound = []
-
         ccp_enabled = self.get_registry_key('HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\IIS\\CentralCertProvider',
                                             'Enabled')
         if ccp_enabled != 1:
@@ -100,9 +101,9 @@ class IISCentralCertP(ModuleInfo):
         exe_files = self.find_files(os.environ['WINDIR'] + '\\Microsoft.NET\\Framework64\\', 'aspnet_regiis.exe')
         if len(exe_files) == 0:
             exe_files = self.find_files(os.environ['WINDIR'] + '\\Microsoft.NET\\Framework\\', 'aspnet_regiis.exe')
-            if len(exe_files) == 0:
-                self.debug(u'File not found aspnet_regiis.exe')
-                return
+        if len(exe_files) == 0:
+            self.debug(u'File not found aspnet_regiis.exe')
+            return
 
         self.info(u'aspnet_regiis.exe files found: {files}'.format(files=exe_files))
         rsa_xml_file = self.create_RSAKeyValueFile(exe_files[-1], "iisWASKey")
@@ -116,16 +117,13 @@ class IISCentralCertP(ModuleInfo):
         os.remove(rsa_xml_file)
         self.debug(u'Temporary file removed: {filename}'.format(filename=rsa_xml_file))
         privkey = self.read_RSAKeyValue(rsa_key_xml)
-        values = {}
-        
         CertStoreLocation = self.get_registry_key('HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\IIS\\CentralCertProvider',
                                                   'CertStoreLocation')
-        values['CertStoreLocation'] = CertStoreLocation
-        
+        values = {'CertStoreLocation': CertStoreLocation}
         username = self.get_registry_key('HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\IIS\\CentralCertProvider',
                                          'Username')
         values['Username'] = username
-        
+
         pass64 = self.get_registry_key('HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\IIS\\CentralCertProvider',
                                        'Password')
         values['Password'] = self.decrypt_hash_b64(pass64, privkey)
@@ -134,5 +132,4 @@ class IISCentralCertP(ModuleInfo):
                                            'PrivateKeyPassword')
         values['Private Key Password'] = self.decrypt_hash_b64(privpass64, privkey)
 
-        pfound.append(values)
-        return pfound 
+        return [values] 

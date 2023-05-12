@@ -105,8 +105,7 @@ class MemoryDump(ModuleInfo):
                 k = KeeThief()
                 if k.run(full_exe_path=full_exe_path):
                     for keepass in constant.keepass:
-                        data = keepass.get('KcpPassword', None)
-                        if data: 
+                        if data := keepass.get('KcpPassword', None):
                             pwd_found.append({
                                 'Category': 'KeePass',
                                 'KeyType': data['KeyType'],

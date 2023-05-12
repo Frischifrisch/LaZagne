@@ -41,17 +41,11 @@ AES_BLOCK_SIZE = 16
 
 
 def convert_to_byte(s):
-    if python_version == 2:
-        return s
-    else:
-        return s.encode()
+    return s if python_version == 2 else s.encode()
 
 
 def o(c):
-    if python_version == 2:
-        return ord(c)
-    else:
-        return c
+    return ord(c) if python_version == 2 else c
 
 
 def long_to_bytes(n, blocksize=0):
@@ -117,7 +111,7 @@ class Mozilla(ModuleInfo):
                         profile_list.append(profile_path)
 
         except Exception as e:
-            self.error(u'An error occurred while reading profiles.ini: {}'.format(e))
+            self.error(f'An error occurred while reading profiles.ini: {e}')
         return profile_list
 
     def get_key(self, profile):
@@ -156,13 +150,13 @@ class Mozilla(ModuleInfo):
                             if row[0]:
                                 break
 
-                        a11 = row[0]  # CKA_VALUE
                         a102 = row[1]  # f8000000000000000000000000000001, CKA_ID
 
                         if python_version == 2:
                             a102 = str(a102)
 
                         if a102 == CKA_ID:
+                            a11 = row[0]  # CKA_VALUE
                             # a11  : CKA_VALUE
                             # a102 : f8000000000000000000000000000001, CKA_ID
                             # self.print_asn1(a11, len(a11), 0)
@@ -177,12 +171,13 @@ class Mozilla(ModuleInfo):
                             #     OCTETSTRING encrypted_3des_key (with 8 bytes of PKCS#7 padding)
                             # }
                             decoded_a11 = decoder.decode(a11)
-                            key = self.decrypt_3des(decoded_a11, master_password, global_salt)
-                            if key:
+                            if key := self.decrypt_3des(
+                                decoded_a11, master_password, global_salt
+                            ):
                                 self.debug(u'key: {key}'.format(key=repr(key)))
                                 yield key[:24]
-                        # else:
-                            # Nothing saved
+                                        # else:
+                                            # Nothing saved
 
                     except Exception:
                         self.debug(traceback.format_exc())
@@ -196,11 +191,12 @@ class Mozilla(ModuleInfo):
                                                                                         key_data=key_data,
                                                                                         new_version=False)
                 if global_salt:
-                    key = self.extract_secret_key(key_data=key_data,
-                                                  global_salt=global_salt,
-                                                  master_password=master_password,
-                                                  entry_salt=entry_salt)
-                    if key:
+                    if key := self.extract_secret_key(
+                        key_data=key_data,
+                        global_salt=global_salt,
+                        master_password=master_password,
+                        entry_salt=entry_salt,
+                    ):
                         self.debug(u'key: {key}'.format(key=repr(key)))
                         yield key[:24]
         except Exception:
@@ -281,8 +277,7 @@ class Mozilla(ModuleInfo):
                     key = self.get_short_le(offsets, 2 + i)
                     val = self.get_short_le(offsets, 4 + i)
                     nval = self.get_short_le(offsets, 8 + i)
-                    offset_vals.append(key + pagesize * page)
-                    offset_vals.append(val + pagesize * page)
+                    offset_vals.extend((key + pagesize * page, val + pagesize * page))
                     readkeys += 1
                     i += 4
 
@@ -294,11 +289,7 @@ class Mozilla(ModuleInfo):
                     db1.append(data)
                 page += 1
 
-        db = {}
-        for i in range(0, len(db1), 2):
-            db[db1[i + 1]] = db1[i]
-
-        return db
+        return {db1[i + 1]: db1[i] for i in range(0, len(db1), 2)}
 
     @staticmethod
     def decrypt_3des(decoded_item, master_password, global_salt):
@@ -307,7 +298,7 @@ class Mozilla(ModuleInfo):
         """
         # See http://www.drh-consultancy.demon.co.uk/key3.html
         pbeAlgo = str(decoded_item[0][0][0])
-        if pbeAlgo == '1.2.840.113549.1.12.5.1.3': # pbeWithSha1AndTripleDES-CBC
+        if pbeAlgo == '1.2.840.113549.1.12.5.1.3':
             entry_salt = decoded_item[0][0][1][0].asOctets()
             cipher_t = decoded_item[0][1].asOctets()
 
@@ -322,10 +313,8 @@ class Mozilla(ModuleInfo):
             iv = k[-8:]
             key = k[:24]
             return triple_des(key, CBC, iv).decrypt(cipher_t)
-        
-        # New version
-        elif pbeAlgo == '1.2.840.113549.1.5.13': # pkcs5 pbes2
 
+        elif pbeAlgo == '1.2.840.113549.1.5.13':
             assert str(decoded_item[0][0][1][0][0]) == '1.2.840.113549.1.5.12'
             assert str(decoded_item[0][0][1][0][1][3][0]) == '1.2.840.113549.2.9'
             assert str(decoded_item[0][0][1][1][0]) == '2.16.840.1.101.3.4.1.42'
@@ -343,10 +332,12 @@ class Mozilla(ModuleInfo):
             # 04 is OCTETSTRING, 0x0e is length == 14
             encrypted_value = decoded_item[0][1].asOctets()
             aes = AESModeOfOperationCBC(key, iv=iv)
-            cleartxt = b"".join([aes.decrypt(encrypted_value[i:i + AES_BLOCK_SIZE])
-                             for i in range(0, len(encrypted_value), AES_BLOCK_SIZE)])
-
-            return cleartxt
+            return b"".join(
+                [
+                    aes.decrypt(encrypted_value[i : i + AES_BLOCK_SIZE])
+                    for i in range(0, len(encrypted_value), AES_BLOCK_SIZE)
+                ]
+            )
 
     def extract_secret_key(self, key_data, global_salt, master_password, entry_salt):
 
@@ -367,9 +358,7 @@ class Mozilla(ModuleInfo):
         pr_key = priv_key_asn1[0][2].asOctets()
         # self.print_asn1(pr_key, len(pr_key), 0)
         pr_key_asn1 = decoder.decode(pr_key)
-        # id = pr_key_asn1[0][1]
-        key = long_to_bytes(pr_key_asn1[0][3])
-        return key
+        return long_to_bytes(pr_key_asn1[0][3])
 
     @staticmethod
     def decode_login_data(data):
@@ -391,8 +380,7 @@ class Mozilla(ModuleInfo):
                 logins_json = os.path.join(profile, 'logins.json')
                 if os.path.isfile(logins_json):
                     with open(logins_json) as f:
-                        loginf = f.read()
-                        if loginf:
+                        if loginf := f.read():
                             json_logins = json.loads(loginf)
                             if 'logins' not in json_logins:
                                 self.debug('No logins key in logins.json')
@@ -434,19 +422,7 @@ class Mozilla(ModuleInfo):
 
     def is_master_password_correct(self, key_data, master_password=b'', new_version=True):
         try:
-            entry_salt = b""
-            if not new_version:
-                # See http://www.drh-consultancy.demon.co.uk/key3.html
-                pwd_check = key_data.get(b'password-check')
-                if not pwd_check:
-                    return '', '', ''
-                # Hope not breaking something (not tested for old version)
-                # entry_salt_len = o(pwd_check[1])
-                # entry_salt = pwd_check[3: 3 + entry_salt_len]
-                # encrypted_passwd = pwd_check[-16:]
-                global_salt = key_data[b'global-salt']
-
-            else:
+            if new_version:
                 global_salt = key_data[0]  # Item1
                 item2 = key_data[1]
                 # self.print_asn1(item2, len(item2), 0)
@@ -462,10 +438,20 @@ class Mozilla(ModuleInfo):
                 # }
                 decoded_item2 = decoder.decode(item2)
 
+            elif pwd_check := key_data.get(b'password-check'):
+                # Hope not breaking something (not tested for old version)
+                # entry_salt_len = o(pwd_check[1])
+                # entry_salt = pwd_check[3: 3 + entry_salt_len]
+                # encrypted_passwd = pwd_check[-16:]
+                global_salt = key_data[b'global-salt']
+
+            else:
+                return '', '', ''
             cleartext_data = self.decrypt_3des(decoded_item2, master_password, global_salt)
             if cleartext_data != convert_to_byte('password-check\x02\x02'):
                 return '', '', ''
 
+            entry_salt = b""
             return global_salt, master_password, entry_salt
         except Exception:
             self.debug(traceback.format_exc())
@@ -484,7 +470,7 @@ class Mozilla(ModuleInfo):
                                                                                        master_password=word.strip(),
                                                                                        new_version=new_version)
             if master_password:
-                self.info(u'Master password found: {}'.format(master_password))
+                self.info(f'Master password found: {master_password}')
                 return global_salt, master_password, entry_salt
 
         self.warning(u'No password has been found using the default list')
@@ -517,28 +503,27 @@ class Mozilla(ModuleInfo):
         """
         Main function
         """
-        if os.path.exists(self.path):
+        if not os.path.exists(self.path):
+            return
+        pwd_found = []
+        for profile in self.get_firefox_profiles(self.path):
+            self.info(u'Profile path found: {profile}'.format(profile=profile))
 
-            pwd_found = []
-            for profile in self.get_firefox_profiles(self.path):
-                self.info(u'Profile path found: {profile}'.format(profile=profile))
+            if credentials := self.getLoginData(profile):
+                for key in self.get_key(profile):
+                    for user, password, url in credentials:
+                        try:
+                            pwd_found.append({
+                                'URL': url,
+                                'Login': self.decrypt(key=key, iv=user[1], ciphertext=user[2]).decode("utf-8"),
+                                'Password': self.decrypt(key=key, iv=password[1], ciphertext=password[2]).decode("utf-8"),
+                            })
+                        except Exception as e:
+                            self.debug(u'An error occurred decrypting the password: {error}'.format(error=e))
+            else:
+                self.info(u'Database empty')
 
-                credentials = self.getLoginData(profile)
-                if credentials:
-                    for key in self.get_key(profile):
-                        for user, password, url in credentials:
-                            try:
-                                pwd_found.append({
-                                    'URL': url,
-                                    'Login': self.decrypt(key=key, iv=user[1], ciphertext=user[2]).decode("utf-8"),
-                                    'Password': self.decrypt(key=key, iv=password[1], ciphertext=password[2]).decode("utf-8"),
-                                })
-                            except Exception as e:
-                                self.debug(u'An error occurred decrypting the password: {error}'.format(error=e))
-                else:
-                    self.info(u'Database empty')
-
-            return pwd_found
+        return pwd_found
 
 
 # Name, path

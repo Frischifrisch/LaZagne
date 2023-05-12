@@ -80,10 +80,7 @@ class LinProcess(BaseProcess):
         else:
             raise ValueError("You need to instanciate process with at least a name or a pid")
         if ptrace is None:
-            if os.getuid()==0:
-                self.read_ptrace=False # no need to ptrace the process when root to read memory
-            else:
-                self.read_ptrace=True
+            self.read_ptrace = os.getuid() != 0
         self._open()
 
     def check_ptrace_scope(self):
@@ -127,7 +124,7 @@ class LinProcess(BaseProcess):
             pass
 
         except Exception as e:
-            logger.warning("Error getting ptrace_scope ?? : %s"%e)
+            logger.warning(f"Error getting ptrace_scope ?? : {e}")
 
     def close(self):
         if self.mem_file:
@@ -152,7 +149,7 @@ class LinProcess(BaseProcess):
 
         #open file descriptor
         if not LARGE_FILE_SUPPORT:
-            self.mem_file=open("/proc/" + str(self.pid) + "/mem", 'rb', 0)
+            self.mem_file = open(f"/proc/{str(self.pid)}/mem", 'rb', 0)
         else:
             path=create_string_buffer(b"/proc/%d/mem" % self.pid)
             self.mem_file=open64(byref(path), os.O_RDONLY)
@@ -162,7 +159,7 @@ class LinProcess(BaseProcess):
         processes=[]
         for pid in os.listdir("/proc"):
             try:
-                exe=os.readlink("/proc/%s/exe"%pid)
+                exe = os.readlink(f"/proc/{pid}/exe")
                 processes.append({"pid":int(pid), "name":exe})
             except:
                 pass
@@ -177,11 +174,11 @@ class LinProcess(BaseProcess):
             except:
                 continue
             pname=""
-            with open("/proc/%s/cmdline"%pid,'r') as f:
+            with open(f"/proc/{pid}/cmdline", 'r') as f:
                 pname=f.read()
             if name in pname:
                 return int(pid)
-        raise ProcessException("No process with such name: %s"%name)
+        raise ProcessException(f"No process with such name: {name}")
 
     ## Partial interface to ptrace(2), only for PTRACE_ATTACH and PTRACE_DETACH.
     def _ptrace(self, attach):
@@ -199,10 +196,9 @@ class LinProcess(BaseProcess):
             os.kill(self.pid, signal.SIGCONT)
 
         if err != 0:
-            raise OSError("%s: %s"%(
-                'PTRACE_ATTACH' if attach else 'PTRACE_DETACH',
-                errno.errorcode.get(ctypes.get_errno(), 'UNKNOWN')
-            ))
+            raise OSError(
+                f"{'PTRACE_ATTACH' if attach else 'PTRACE_DETACH'}: {errno.errorcode.get(ctypes.get_errno(), 'UNKNOWN')}"
+            )
 
     def iter_region(self, start_offset=None, end_offset=None, protec=None, optimizations=None):
         """
@@ -212,19 +208,26 @@ class LinProcess(BaseProcess):
                 x to avoid scanning x regions
                 r don't scan ronly regions
         """
-        with open("/proc/" + str(self.pid) + "/maps", 'r') as maps_file:
+        with open(f"/proc/{str(self.pid)}/maps", 'r') as maps_file:
             for line in maps_file:
                 m = re.match(r'([0-9A-Fa-f]+)-([0-9A-Fa-f]+)\s+([-rwpsx]+)\s+([0-9A-Fa-f]+)\s+([0-9A-Fa-f]+:[0-9A-Fa-f]+)\s+([0-9]+)\s*(.*)', line)
                 if not m:
                     continue
-                start, end, region_protec, offset, dev, inode, pathname = int(m.group(1), 16), int(m.group(2), 16), m.group(3), m.group(4), m.group(5), int(m.group(6)), m.group(7)
+                start, end, region_protec, offset, dev, inode, pathname = (
+                    int(m[1], 16),
+                    int(m[2], 16),
+                    m[3],
+                    m[4],
+                    m[5],
+                    int(m[6]),
+                    m[7],
+                )
                 if start_offset is not None:
                     if start < start_offset:
                         continue
                 if end_offset is not None:
                     if start > end_offset:
                         continue
-                chunk=end-start
                 if 'r' in region_protec: # TODO: handle protec parameter
                     if optimizations:
                         if 'i' in optimizations and inode != 0:
@@ -233,8 +236,9 @@ class LinProcess(BaseProcess):
                             continue
                         if 'x' in optimizations and 'x' in region_protec:
                             continue
-                        if 'r' in optimizations and not 'w' in region_protec:
+                        if 'r' in optimizations and 'w' not in region_protec:
                             continue
+                    chunk=end-start
                     yield start, chunk
 
     def ptrace_attach(self):
@@ -259,6 +263,7 @@ class LinProcess(BaseProcess):
 
         #we can only copy data per range of 4 or 8 bytes
         word_size=ctypes.sizeof(ctypes.c_void_p)
+        attempt=0
         #mprotect(address, len(data)+(len(data)%word_size), PROT_WRITE|PROT_READ)
         for i in range(0, len(data), word_size):
             word=data[i:i+word_size]
@@ -268,11 +273,10 @@ class LinProcess(BaseProcess):
             if sys.byteorder=="little":
                 word=word[::-1]
 
-            attempt=0
             err = c_ptrace(ctypes.c_int(PTRACE_POKEDATA), c_pid, int(address)+i, int(word.encode("hex"), 16))
             if err != 0:
                 error=errno.errorcode.get(ctypes.get_errno(), 'UNKNOWN')
-                raise OSError("Error using PTRACE_POKEDATA: %s"%error)
+                raise OSError(f"Error using PTRACE_POKEDATA: {error}")
 
         self.ptrace_detach()
         return True
@@ -290,7 +294,7 @@ class LinProcess(BaseProcess):
             try:
                 data=os.read(self.mem_file, bytes)
             except Exception as e:
-                logger.info("Error reading %s at %s: %s"%((bytes),address, e))
+                logger.info(f"Error reading {bytes} at {address}: {e}")
         if self.read_ptrace:
             self.ptrace_detach()
         return data

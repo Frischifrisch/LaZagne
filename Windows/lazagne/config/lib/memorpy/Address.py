@@ -72,12 +72,15 @@ class Address(object):
     def __repr__(self):
         if not self.symbolic_name:
             self.symbolic_name = self.symbol()
-        return str('<Addr: %s' % self.symbolic_name + '>')
+        return str(f'<Addr: {self.symbolic_name}>')
 
     def __str__(self):
         if not self.symbolic_name:
             self.symbolic_name = self.symbol()
-        return str('<Addr: %s' % self.symbolic_name + ' : "%s" (%s)>' % (str(self.read()).encode('unicode_escape'), self.default_type))
+        return str(
+            f'<Addr: {self.symbolic_name}'
+            + f""" : "{str(self.read()).encode('unicode_escape')}" ({self.default_type})>"""
+        )
 
     def __int__(self):
         return int(self.value)

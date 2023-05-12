@@ -54,12 +54,12 @@ class StandardOutput(object):
 
     # info option for the logging
     def print_title(self, title):
-        t = u'------------------- ' + title + ' passwords -----------------\n'
+        t = f'------------------- {title}' + ' passwords -----------------\n'
         self.do_print(message=t, color='white', intensity=True)
 
     # debug option for the logging
     def title_info(self, title):
-        t = u'------------------- ' + title + ' passwords -----------------\n'
+        t = f'------------------- {title}' + ' passwords -----------------\n'
         self.print_logging(function=logging.info, prefix='', message=t, color='white', intensity=True)
 
     def print_user(self, user, force_print=False):
@@ -166,10 +166,9 @@ class StandardOutput(object):
                         to_write.append(pwd)
                 self.do_print()
 
-            # Other passwords
             else:
                 # Remove duplicated password
-                pwd_found = [dict(t) for t in set([tuple(d.items()) for d in pwd_found])]
+                pwd_found = [dict(t) for t in {tuple(d.items()) for d in pwd_found}]
 
                 # Loop through all passwords found
                 for pwd in pwd_found:
@@ -185,12 +184,11 @@ class StandardOutput(object):
                     write_it = False
                     passwd = None
                     try:
-                        passwd_str = pwd_lower_keys[pwd_category]
-                        # Do not print empty passwords
-                        if not passwd_str:
+                        if passwd_str := pwd_lower_keys[pwd_category]:
+                            passwd = string_to_unicode(passwd_str)
+                        else:
                             continue
 
-                        passwd = string_to_unicode(passwd_str)
                     except Exception:
                         pass
 
@@ -210,9 +208,9 @@ class StandardOutput(object):
                     pwd_info = []
                     for p in pwd:
                         try:
-                            pwd_line = '%s: %s' % (p, pwd[p].decode())  # Manage bytes output (py 3)
+                            pwd_line = f'{p}: {pwd[p].decode()}'
                         except Exception:
-                            pwd_line = '%s: %s' % (p, pwd[p])
+                            pwd_line = f'{p}: {pwd[p]}'
 
                         pwd_info.append(pwd_line)
                         self.do_print(pwd_line)
@@ -240,12 +238,17 @@ class StandardOutput(object):
             username=get_username_winapi(),
             hostname=hostname
         )
-        with open(os.path.join(constant.folder_name, '{}.txt'.format(constant.file_name_results)), "ab+") as f:
+        with open(os.path.join(constant.folder_name, f'{constant.file_name_results}.txt'), "ab+") as f:
             f.write(header.encode())
 
     def write_footer(self):
         footer = '\n[+] %s passwords have been found.\r\n\r\n' % str(constant.nb_password_found)
-        open(os.path.join(constant.folder_name, '%s.txt' % constant.file_name_results), "a+").write(footer)
+        open(
+            os.path.join(
+                constant.folder_name, f'{constant.file_name_results}.txt'
+            ),
+            "a+",
+        ).write(footer)
 
     def checks_write(self, values, category):
         if values:
@@ -263,11 +266,10 @@ def print_debug(error_level, message):
     if error_level == 'OK':
         constant.st.do_print(message='[+] {message}'.format(message=message), color='green')
 
-    # print when password is not found
     elif error_level == 'FAILED':
         constant.st.do_print(message='[-] {message}'.format(message=message), color='red', intensity=True)
 
-    elif error_level == 'CRITICAL' or error_level == 'ERROR':
+    elif error_level in ['CRITICAL', 'ERROR']:
         constant.st.print_logging(function=logging.error, prefix='[-]', message=message, color='red', intensity=True)
 
     elif error_level == 'WARNING':
@@ -324,29 +326,40 @@ def write_in_file(result):
     """
     Write output to file (json and txt files)
     """
-    if result:
-        if constant.output in ('json', 'all'):
-            try:
-                # Human readable Json format
-                pretty_json = json.dumps(result, sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
-                with open(os.path.join(constant.folder_name, constant.file_name_results + '.json'), 'ab+') as f:
-                    f.write(pretty_json.encode())
+    if not result:
+        return
+    if constant.output in ('json', 'all'):
+        try:
+            # Human readable Json format
+            pretty_json = json.dumps(result, sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
+            with open(os.path.join(constant.folder_name, f'{constant.file_name_results}.json'), 'ab+') as f:
+                f.write(pretty_json.encode())
 
-                constant.st.do_print(u'[+] File written: {file}'.format(
-                    file=os.path.join(constant.folder_name, constant.file_name_results + '.json'))
+            constant.st.do_print(
+                u'[+] File written: {file}'.format(
+                    file=os.path.join(
+                        constant.folder_name,
+                        f'{constant.file_name_results}.json',
+                    )
                 )
-            except Exception as e:
-                print_debug('DEBUGG', traceback.format_exc())
+            )
+        except Exception as e:
+            print_debug('DEBUGG', traceback.format_exc())
 
-        if constant.output in ('txt', 'all'):
-            try:
-                with open(os.path.join(constant.folder_name, constant.file_name_results + '.txt'), 'ab+') as f:
-                    a = json_to_string(result)
-                    f.write(a.encode())
+    if constant.output in ('txt', 'all'):
+        try:
+            with open(os.path.join(constant.folder_name, f'{constant.file_name_results}.txt'), 'ab+') as f:
+                a = json_to_string(result)
+                f.write(a.encode())
 
-                constant.st.write_footer()
-                constant.st.do_print(u'[+] File written: {file}'.format(
-                    file=os.path.join(constant.folder_name, constant.file_name_results + '.txt'))
+            constant.st.write_footer()
+            constant.st.do_print(
+                u'[+] File written: {file}'.format(
+                    file=os.path.join(
+                        constant.folder_name,
+                        f'{constant.file_name_results}.txt',
+                    )
                 )
-            except Exception as e:
-                print_debug('DEBUG', traceback.format_exc())
+            )
+        except Exception as e:
+            print_debug('DEBUG', traceback.format_exc())

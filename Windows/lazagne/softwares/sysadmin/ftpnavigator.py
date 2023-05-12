@@ -12,16 +12,13 @@ class FtpNavigator(ModuleInfo):
         ModuleInfo.__init__(self, 'ftpnavigator', 'sysadmin', system_module=True)
 
     def decode(self, encode_password):
-        password = ''
-        for p in encode_password:
-            password += chr(struct.unpack('B', p)[0] ^ 0x19)
-        return password
+        return ''.join(chr(struct.unpack('B', p)[0] ^ 0x19) for p in encode_password)
 
     def run(self):
         path = os.path.join(constant.profile['HOMEDRIVE'], u'\\FTP Navigator', u'Ftplist.txt')
-        elements = {'Name': 'Name', 'Server': 'Host', 'Port': 'Port', 'User': 'Login', 'Password': 'Password'}
         if os.path.exists(path):
             pwd_found = []
+            elements = {'Name': 'Name', 'Server': 'Host', 'Port': 'Port', 'User': 'Login', 'Password': 'Password'}
             with open(path, 'r') as f:
                 for ff in f:
                     values = {}

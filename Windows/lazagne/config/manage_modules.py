@@ -75,7 +75,7 @@ def get_modules_names():
 
 
 def get_categories():
-    category = {
+    return {
         'browsers': {'help': 'Web browsers supported'},
         'chats': {'help': 'Chat clients supported'},
         'databases': {'help': 'SQL/NoSQL clients supported'},
@@ -90,9 +90,10 @@ def get_categories():
         'sysadmin': {'help': 'SCP/SSH/FTP/FTPS clients supported'},
         'windows': {'help': 'Windows credentials (credential manager, etc.)'},
         'wifi': {'help': 'Wifi'},
-        'unused': {'help': 'This modules could not be used because of broken dependence'}
+        'unused': {
+            'help': 'This modules could not be used because of broken dependence'
+        },
     }
-    return category
 
 
 

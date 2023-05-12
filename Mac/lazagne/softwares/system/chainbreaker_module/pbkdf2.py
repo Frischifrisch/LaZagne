@@ -23,10 +23,7 @@ def pbkdf2(password, salt, itercount, keylen, hashfn=sha1):
 
     h = hmac.new(password, None, hashfn)
 
-    T = ""
-    for i in range(1, l + 1):
-        T += pbkdf2_F(h, salt, itercount, i)
-
+    T = "".join(pbkdf2_F(h, salt, itercount, i) for i in range(1, l + 1))
     return T[: -(BLOCKLEN - keylen % BLOCKLEN)]
 
 
@@ -34,11 +31,7 @@ def xorstr(a, b):
     if len(a) != len(b):
         raise "xorstr(): lengths differ"
 
-    ret = ''
-    for i in range(len(a)):
-        ret += chr(ord(a[i]) ^ ord(b[i]))
-
-    return ret
+    return ''.join(chr(ord(a[i]) ^ ord(b[i])) for i in range(len(a)))
 
 
 def prf(h, data):
@@ -53,7 +46,7 @@ def pbkdf2_F(h, salt, itercount, blocknum):
     U = prf(h, salt + pack('>i', blocknum))
     T = U
 
-    for i in range(2, itercount + 1):
+    for _ in range(2, itercount + 1):
         U = prf(h, U)
         T = xorstr(T, U)
 

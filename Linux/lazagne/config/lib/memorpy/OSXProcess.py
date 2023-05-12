@@ -78,7 +78,7 @@ class OSXProcess(BaseProcess):
         self.mytask=libc.mach_task_self()
         ret=libc.task_for_pid(self.mytask, ctypes.c_int(self.pid), ctypes.pointer(self.task))
         if ret!=0:
-            raise ProcessException("task_for_pid failed with error code : %s"%ret)
+            raise ProcessException(f"task_for_pid failed with error code : {ret}")
 
     @staticmethod
     def list():
@@ -90,7 +90,7 @@ class OSXProcess(BaseProcess):
                 tab=line.split()
                 pid=int(tab[0])
                 exe=' '.join(tab[4:])
-                processes.append({"pid":int(pid), "name":exe})
+                processes.append({"pid": pid, "name": exe})
             except:
                 pass
         return processes
@@ -127,7 +127,7 @@ class OSXProcess(BaseProcess):
                 break
 
             if r != 0:
-                raise ProcessException('mach_vm_region failed with error code %s' % r)
+                raise ProcessException(f'mach_vm_region failed with error code {r}')
             if start_offset is not None:
                 if address.value < start_offset:
                     address.value += mapsize.value
@@ -150,23 +150,22 @@ class OSXProcess(BaseProcess):
                         address.value += mapsize.value
                         continue
                 yield address.value, mapsize.value
-            
+
             address.value += mapsize.value
 
 
     def write_bytes(self, address, data):
         raise NotImplementedError("write not implemented on OSX")
-        return True
 
     def read_bytes(self, address, bytes = 4):
         pdata = ctypes.c_void_p(0)
         data_cnt = ctypes.c_uint32(0)
-        
+
         ret = libc.mach_vm_read(self.task, ctypes.c_ulonglong(address), ctypes.c_longlong(bytes), ctypes.pointer(pdata), ctypes.pointer(data_cnt));
         #if ret==1:
         #    return ""
         if ret!=0:
-            raise ProcessException("mach_vm_read returned : %s"%ret)
+            raise ProcessException(f"mach_vm_read returned : {ret}")
         buf=ctypes.string_at(pdata.value, data_cnt.value)
         libc.vm_deallocate(self.mytask, pdata, data_cnt)
         return buf

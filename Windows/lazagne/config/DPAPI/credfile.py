@@ -91,18 +91,17 @@ class CredFile(DataStruct):
 
     def decrypt(self, mkp, credfile):
         ok, msg = self.blob.decrypt_encrypted_blob(mkp=mkp)
-        if ok:
-            cred_dec = CredentialDecrypted(msg)
-            if cred_dec.header.unk_type in [2, 3]:
-                return True, {
-                    'File': credfile,
-                    'Domain': cred_dec.domain,
-                    'Username': cred_dec.username,
-                    'Password': cred_dec.password,
-                }
-            elif cred_dec.header.unk_type == 2:
-                return False, 'System credential type'
-            else:
-                return False, 'Unknown CREDENTIAL type, please report.\nCreds: {creds}'.format(creds=cred_dec)
-        else:
+        if not ok:
             return ok, msg
+        cred_dec = CredentialDecrypted(msg)
+        if cred_dec.header.unk_type in [2, 3]:
+            return True, {
+                'File': credfile,
+                'Domain': cred_dec.domain,
+                'Username': cred_dec.username,
+                'Password': cred_dec.password,
+            }
+        elif cred_dec.header.unk_type == 2:
+            return False, 'System credential type'
+        else:
+            return False, 'Unknown CREDENTIAL type, please report.\nCreds: {creds}'.format(creds=cred_dec)

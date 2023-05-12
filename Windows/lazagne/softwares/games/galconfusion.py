@@ -17,7 +17,6 @@ class GalconFusion(ModuleInfo):
         ModuleInfo.__init__(self, 'galconfusion', 'games', registry_used=True)
 
     def run(self):
-        creds = []
         results = None
 
         # Find the location of steam - to make it easier we're going to use a try block
@@ -37,6 +36,7 @@ class GalconFusion(ModuleInfo):
                 self.error(u'Steam doesn\'t have a userdata directory.')
                 return
 
+            creds = []
             # Now look for Galcon Fusion in every user
             for f in os.listdir(userdata):
                 filepath = os.path.join(userdata, string_to_unicode(f), u'44200\\remote\\galcon.cfg')

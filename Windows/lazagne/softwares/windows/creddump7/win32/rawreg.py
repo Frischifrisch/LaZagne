@@ -35,28 +35,26 @@ def get_root(address_space):
 def open_key(root, key):
     if not key:
         return root
-    
+
     keyname = key.pop(0)
     if isinstance(keyname, str):
         keyname = keyname.encode()
 
-    for s in subkeys(root):
-        if s.Name.upper() == keyname.upper():
-            return open_key(s, key)
-    # print "ERR: Couldn't find subkey %s of %s" % (keyname, root.Name)
-    return None
+    return next(
+        (
+            open_key(s, key)
+            for s in subkeys(root)
+            if s.Name.upper() == keyname.upper()
+        ),
+        None,
+    )
 
 
 def subkeys(key, stable=True):
-    if stable:
-        k = 0
-    else:
-        k = 1
-
+    k = 0 if stable else 1
     sk = (key.SubKeyLists[k]/["pointer", ["_CM_KEY_INDEX"]]).value
     sub_list = []
-    if (sk.Signature.value == LH_SIG or
-            sk.Signature.value == LF_SIG):
+    if sk.Signature.value in [LH_SIG, LF_SIG]:
         sub_list = sk.List
     elif sk.Signature.value == RI_SIG:
         lfs = []
@@ -80,5 +78,4 @@ def values(key):
 def walk(root):
     for k in subkeys(root):
         yield k
-        for j in walk(k):
-            yield j
+        yield from walk(k)

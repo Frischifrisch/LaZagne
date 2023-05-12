@@ -44,18 +44,11 @@ class Composer(ModuleInfo):
         Main function
         """
 
-        # Define the possible full path of the "auth.json" file when is defined at global level
-        # See "https://getcomposer.org/doc/articles/http-basic-authentication.md"
-        # See "https://seld.be/notes/authentication-management-in-composer"
-        location = ''
         tmp_location = [
             os.path.join(constant.profile["COMPOSER_HOME"], u'auth.json'), 
             os.path.join(constant.profile["APPDATA"], u'Composer\\auth.json')
         ]
-        for tmp in tmp_location:
-            if os.path.isfile(tmp):
-                location = tmp
-                break
-            
-        if location:
+        if location := next(
+            (tmp for tmp in tmp_location if os.path.isfile(tmp)), ''
+        ):
             return self.extract_credentials(location)

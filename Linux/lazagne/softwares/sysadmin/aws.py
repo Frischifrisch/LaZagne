@@ -37,12 +37,8 @@ class Aws(ModuleInfo):
     def run(self):
         all_passwords = []
         for path in self.get_paths():
-            for section, key, secret in self.get_creds(path):
-                all_passwords.append({
-                    'ID': key,
-                    'KEY': secret,
-                    'Service': 'AWS',
-                    'Name': section
-                })
-
+            all_passwords.extend(
+                {'ID': key, 'KEY': secret, 'Service': 'AWS', 'Name': section}
+                for section, key, secret in self.get_creds(path)
+            )
         return all_passwords

@@ -56,30 +56,24 @@ class ClawsMail(ModuleInfo):
 
     def pass_decrypt_old(self, p):
         """ Decrypts a password from ClawsMail. => old version """
-        if p[0] == '!':  # encrypted password
-            buf = b64decode(p[1:])
+        if p[0] != '!':
+            return p  # raw password
+        buf = b64decode(p[1:])
 
-            """
+        """
             If mode is ECB or CBC and the length of the data is wrong, do nothing
             as would the libc algorithms (as they fail early).	Yes, this means the
             password wasn't actually encrypted but only base64-ed.
             """
-            if (self.mode in (ECB, CBC)) and ((len(buf) % 8) != 0 or len(buf) > 8192):
-                return buf
+        if (self.mode in (ECB, CBC)) and ((len(buf) % 8) != 0 or len(buf) > 8192):
+            return buf
 
-            c = des(self.passcrypt_key, self.mode, b'\0' * 8)
-            return c.decrypt(buf)
-        else:
-            return p  # raw password
+        c = des(self.passcrypt_key, self.mode, b'\0' * 8)
+        return c.decrypt(buf)
 
     def pass_decrypt_new(self, encrypted_pwd):
         """ Decrypts a password from ClawsMail. => new version """
-        # Everything is explained on the doc / code
-        # https://github.com/eworm-de/claws-mail/blob/master/doc/src/password_encryption.txt
-        # https://github.com/eworm-de/claws-mail/blob/aca15d9a473bdfdeef4a572b112ff3679d745247/src/password.c#L409
-
-        m = re.match('{(.*),(.*)}(.*)', encrypted_pwd)
-        if m:
+        if m := re.match('{(.*),(.*)}(.*)', encrypted_pwd):
             # rounds and pbkdf2_rounds should be identical
             mode, rounds, enc_pwd = m.groups()
 
@@ -101,7 +95,7 @@ class ClawsMail(ModuleInfo):
         accout_number = section.lower().split(':')[1]
         section_name = 'account:{num}'.format(num=accout_number.strip())
         with open(os.path.join(path, 'passwordstorerc')) as f:
-            for line in f.readlines():
+            for line in f:
                 if found:
                     return line.strip()
                 if section_name in line:

@@ -113,7 +113,7 @@ class KDB4File(KDBFile):
             # two byte (short) length of field data
             length = stream_unpack(stream, None, 2, 'h')
             if length > 0:
-                data = stream_unpack(stream, None, length, '{}s'.format(length))
+                data = stream_unpack(stream, None, length, f'{length}s')
                 self.header.b[field_id] = data
 
             # set position in data stream of end of header

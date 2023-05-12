@@ -18,7 +18,7 @@ def transform_key(key, seed, rounds):
     # create transform cipher with transform seed
     cipher = AESModeOfOperationECB(seed)
     # transform composite key rounds times
-    for n in range(0, rounds):
+    for _ in range(0, rounds):
         key = b"".join([cipher.encrypt(key[i:i + AES_BLOCK_SIZE]) for i in range(0, len(key), AES_BLOCK_SIZE)])
     # return hash of transformed key
     return sha256(key)

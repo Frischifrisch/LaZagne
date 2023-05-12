@@ -23,8 +23,6 @@ class KalypsoMedia(ModuleInfo):
         return b''.join(chr_or_byte(char_to_int(x) ^ char_to_int(y)) for x, y in zip(s, k))
 
     def run(self):
-        creds = []
-        key = b'lwSDFSG34WE8znDSmvtwGSDF438nvtzVnt4IUv89'
         inifile = os.path.join(constant.profile['APPDATA'], u'Kalypso Media\\Launcher\\launcher.ini')
 
         # The actual user details are stored in *.userdata files
@@ -35,8 +33,10 @@ class KalypsoMedia(ModuleInfo):
             # get the encoded password
             cookedpw = base64.b64decode(config.get('styx user', 'password'))
 
-            creds.append({
-                'Login': config.get('styx user', 'login'),
-                'Password': self.xorstring(cookedpw, key)
-            })
-            return creds
+            key = b'lwSDFSG34WE8znDSmvtwGSDF438nvtzVnt4IUv89'
+            return [
+                {
+                    'Login': config.get('styx user', 'login'),
+                    'Password': self.xorstring(cookedpw, key),
+                }
+            ]

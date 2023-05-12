@@ -89,10 +89,7 @@ class Mimipy(ModuleInfo):
             yield x
 
     def password_list_match(self, password_list, near):
-        for password in password_list:
-            if near.search(password.decode('latin')):
-                return True
-        return False
+        return any(near.search(password.decode('latin')) for password in password_list)
 
     def cleanup_string(self, s):
         try:
@@ -106,7 +103,7 @@ class Mimipy(ModuleInfo):
             return s
 
     def test_shadow(self, name, pid, rule, optimizations='nsrx'):
-        self.info('Analysing process %s (%s) for shadow passwords ...' % (name, pid))
+        self.info(f'Analysing process {name} ({pid}) for shadow passwords ...')
         password_tested = set()  # to avoid hashing the same string multiple times
 
         with MemWorker(name=name, pid=pid) as mw:
@@ -114,21 +111,19 @@ class Mimipy(ModuleInfo):
 
             for _, match_addr in mw.mem_search(rule["near"], ftype='re', optimizations=optimizations):
                 password_list = []
-                total = 0
                 start = int(match_addr - self.look_after_size)
                 end = int(match_addr + self.look_after_size)
 
                 for s, e in scanned_segments:
                     if end < s or start > e:
                         continue  # no collision
-                    elif start >= s and e >= start and end >= e:
+                    elif start >= s and end >= e:
                         start = e - 200  # we only scan a smaller region because some of it has already been scanned
 
                 scanned_segments.append((start, end))
 
-                for x in self.memstrings(mw, start_offset=start, end_offset=end, optimizations=optimizations):
+                for total, x in enumerate(self.memstrings(mw, start_offset=start, end_offset=end, optimizations=optimizations)):
                     password = self.cleanup_string(x.read(type='string', maxlen=51, errors='ignore'))
-                    total += 1
                     password_list.append(password)
 
                     if len(password_list) > 40:
@@ -161,11 +156,13 @@ class Mimipy(ModuleInfo):
             self.info('You need sudo privileges')
             return
 
-        pwd_found = []
-        for t, process, user, password in self.mimipy_loot_passwords(optimizations="nsrx"):
-            pwd_found.append({
+        return [
+            {
                 'Process': str(process),
                 'Login': str(user),
                 'Password': str(password),
-            })
-        return pwd_found
+            }
+            for t, process, user, password in self.mimipy_loot_passwords(
+                optimizations="nsrx"
+            )
+        ]

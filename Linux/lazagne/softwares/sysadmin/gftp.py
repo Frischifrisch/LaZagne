@@ -20,15 +20,18 @@ class gFTP(ModuleInfo):
         """
         Password is offuscated: first char is a $. Then each char from the password is converted in hex and encoded regarding its value
         """
-        decoded_pass = ""
         #removing the first char ($)
         encoded_pass = encoded_pass[1:]
         password_offuscation_table = ['A', 'E', 'I', 'M', 'Q', 'U', 'Y', ']', 'a', 'e', 'i', 'm', 'q', 'u', 'y', '}']
         chars = [encoded_pass[i:i + 2] for i in range(0, len(encoded_pass), 2)]
 
-        for char in chars:
-            decoded_pass += chr(password_offuscation_table.index(char[0]) * 16 + password_offuscation_table.index(char[1]))
-        return decoded_pass
+        return "".join(
+            chr(
+                password_offuscation_table.index(char[0]) * 16
+                + password_offuscation_table.index(char[1])
+            )
+            for char in chars
+        )
 
     def get_parameter(self, name, file_content):
         """

@@ -21,13 +21,8 @@ sys.setrecursionlimit(10000)
 def create_module_dic():
     if constant.modules_dic:
         return constant.modules_dic
-    
-    modules = {}
 
-    # Define a dictionary for all modules
-    for category in get_categories():
-        modules[category] = {}
-
+    modules = {category: {} for category in get_categories()}
     # Add all modules to the dictionary
     for m in get_modules():
         modules[m.category][m.options['dest']] = m
@@ -57,19 +52,14 @@ def run_modules(module, subcategories={}, system_module=False):
     """
     Run modules inside a category (could be one or multiple modules)
     """
-    modules_to_launch = []
-    
-    # Launch only a specific module
-    for i in subcategories:
-        if subcategories[i] and i in module:
-            modules_to_launch.append(i)
-
+    modules_to_launch = [
+        i for i in subcategories if subcategories[i] and i in module
+    ]
     # Launch all modules
     if not modules_to_launch:
         modules_to_launch = module
 
     for i in modules_to_launch:
-        # Only current user could access to HKCU registry or use some API that only can be run from the user environment
         if not constant.is_current_user:
             if module[i].registry_used or module[i].only_from_current_user:
                 continue
@@ -92,8 +82,7 @@ def run_modules(module, subcategories={}, system_module=False):
             continue
 
         # Run module
-        for m in run_module(title=i, module=module[i]):
-            yield m
+        yield from run_module(title=i, module=module[i])
 
 
 def run_category(category_selected, subcategories={}, system_module=False):
@@ -104,29 +93,22 @@ def run_category(category_selected, subcategories={}, system_module=False):
     modules = create_module_dic()
     categories = [category_selected] if category_selected != 'all' else get_categories()
     for category in categories:
-        for r in run_modules(modules[category], subcategories, system_module):
-            yield r
-
+        yield from run_modules(modules[category], subcategories, system_module)
     if not system_module:
         if constant.is_current_user:
             # Modules using Windows API (CryptUnprotectData) can be called from the current session
             for module in constant.module_to_exec_at_end.get('winapi', []):
-                for m in run_module(title=module['title'], module=module['module']):
-                    yield m
-
-            if constant.module_to_exec_at_end.get('dpapi', []):
-                if are_masterkeys_retrieved():
+                yield from run_module(title=module['title'], module=module['module'])
+            if are_masterkeys_retrieved():
+                if constant.module_to_exec_at_end.get('dpapi', []):
                     for module in constant.module_to_exec_at_end.get('dpapi', []):
-                        for m in run_module(title=module['title'], module=module['module']):
-                            yield m
-        else:
+                        yield from run_module(title=module['title'], module=module['module'])
+        elif are_masterkeys_retrieved():
             if constant.module_to_exec_at_end.get('dpapi', []) or constant.module_to_exec_at_end.get('winapi', []):
-                if are_masterkeys_retrieved():
                     # Execute winapi/dpapi modules - winapi decrypt blob using dpapi without calling CryptUnprotectData
-                    for i in ['winapi', 'dpapi']:
-                        for module in constant.module_to_exec_at_end.get(i, []):
-                            for m in run_module(title=module['title'], module=module['module']):
-                                yield m
+                for i in ['winapi', 'dpapi']:
+                    for module in constant.module_to_exec_at_end.get(i, []):
+                        yield from run_module(title=module['title'], module=module['module'])
 
 
 def run_lazagne(category_selected='all', subcategories={}, password=None):
@@ -173,8 +155,7 @@ def run_lazagne(category_selected='all', subcategories={}, password=None):
             yield 'User', constant.username
 
             try:
-                for r in run_category(category_selected, subcategories, system_module=True):
-                    yield r
+                yield from run_category(category_selected, subcategories, system_module=True)
             except:  # Catch all kind of exceptions
                 pass
             finally:
@@ -194,10 +175,9 @@ def run_lazagne(category_selected='all', subcategories={}, password=None):
 
         set_env_variables(user=constant.username)
 
-        for r in run_category(category_selected, subcategories):
-            yield r
+        yield from run_category(category_selected, subcategories)
         constant.stdout_result.append(constant.finalResults)
-    
+
     # Check if admin to impersonate
     if ctypes.windll.shell32.IsUserAnAdmin() != 0:
 
@@ -212,7 +192,7 @@ def run_lazagne(category_selected='all', subcategories={}, password=None):
             if constant.username != sid[3] and sid[2] != 'S-1-5-18':
                 impersonate_users.setdefault(sid[3], []).append(sid[2])
 
-        for user in impersonate_users:
+        for user, value in impersonate_users.items():
             if 'service' in user.lower().strip():
                 continue
 
@@ -224,16 +204,14 @@ def run_lazagne(category_selected='all', subcategories={}, password=None):
             yield 'User', user
 
             constant.finalResults = {'User': user}
-            for sid in impersonate_users[user]:
+            for sid in value:
                 try:
                     set_env_variables(user, to_impersonate=True)
                     if impersonate_sid_long_handle(sid, close=False):
                         impersonated_user.append(user)
 
                         # Launch module wanted
-                        for r in run_category(category_selected, subcategories):
-                            yield r
-
+                        yield from run_category(category_selected, subcategories)
                         rev2self()
                         constant.stdout_result.append(constant.finalResults)
                         break
@@ -255,7 +233,5 @@ def run_lazagne(category_selected='all', subcategories={}, password=None):
             yield 'User', user
 
             # Retrieve passwords that need high privileges
-            for r in run_category(category_selected, subcategories):
-                yield r
-
+            yield from run_category(category_selected, subcategories)
             constant.stdout_result.append(constant.finalResults)

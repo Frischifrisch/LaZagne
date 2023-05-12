@@ -56,10 +56,10 @@ class MemWorker(object):
         allWritesSucceed = True
         for _, start_offset in self.mem_search(regex, ftype='re'):
             if self.process.write_bytes(start_offset, replace) == 1:
-                logger.debug('Write at offset %s succeeded !' % start_offset)
+                logger.debug(f'Write at offset {start_offset} succeeded !')
             else:
                 allWritesSucceed = False
-                logger.debug('Write at offset %s failed !' % start_offset)
+                logger.debug(f'Write at offset {start_offset} failed !')
 
         return allWritesSucceed
 
@@ -72,21 +72,19 @@ class MemWorker(object):
     def group_search(self, group, start_offset = None, end_offset = None):
         regex = ''
         for value, type in group:
-            if type == 'f' or type == 'float':
-                f = struct.pack('<f', float(value))
-                regex += '..' + f[2:4]
-            else:
-                raise NotImplementedError('unknown type %s' % type)
+            if type not in ['f', 'float']:
+                raise NotImplementedError(f'unknown type {type}')
 
+            f = struct.pack('<f', float(value))
+            regex += f'..{f[2:4]}'
         return self.mem_search(regex, ftype='re', start_offset=start_offset, end_offset=end_offset)
 
     def search_address(self, addr):
         a = '%08X' % addr
-        logger.debug('searching address %s' % a)
-        regex = ''
-        for i in range(len(a) - 2, -1, -2):
-            regex += binascii.unhexlify(a[i:i + 2])
-
+        logger.debug(f'searching address {a}')
+        regex = ''.join(
+            binascii.unhexlify(a[i : i + 2]) for i in range(len(a) - 2, -1, -2)
+        )
         for _, a in self.mem_search(re.escape(regex), ftype='re'):
             yield a
 
@@ -138,12 +136,12 @@ class MemWorker(object):
         """
         
         # pre-compile regex to run faster
-        if ftype == 're' or ftype == 'groups' or ftype == 'ngroups':
-            
+        if ftype in ['re', 'groups', 'ngroups']:
+
             # value should be an array of regex
             if type(value) is not list:
                 value = [value]
-            
+
             tmp = []
             for reg in value:
                 if type(reg) is tuple:
@@ -163,29 +161,31 @@ class MemWorker(object):
                 tmp.append((name, regex))
             value = tmp
 
-        elif ftype != 'match' and ftype != 'group' and ftype != 're' and ftype != 'groups' and ftype != 'ngroups' and ftype != 'lambda':
+        elif ftype not in ['match', 'group', 'lambda']:
             structtype, structlen = type_unpack(ftype)
             value = struct.pack(structtype, value)
 
         # different functions avoid if statement before parsing the buffer
-        if ftype == 're':
-            func = self.parse_re_function        
-        
+        if ftype == 'float':
+            func = self.parse_float_function
         elif ftype == 'groups':
             func = self.parse_groups_function
 
+        elif ftype == 'lambda':
+            func = value
         elif ftype == 'ngroups':
             func = self.parse_named_groups_function
 
-        elif ftype == 'float':
-            func = self.parse_float_function
-        elif ftype == 'lambda': # use a custm function
-            func = value
+        elif ftype == 're':
+            func = self.parse_re_function        
+
         else:
             func = self.parse_any_function
 
         if not self.process.isProcessOpen:
-            raise ProcessException("Can't read_bytes, process %s is not open" % (self.process.pid))
+            raise ProcessException(
+                f"Can't read_bytes, process {self.process.pid} is not open"
+            )
 
         for offset, chunk_size in self.process.iter_region(start_offset=start_offset, end_offset=end_offset, protec=protec, optimizations=optimizations):
             b = b''
@@ -217,10 +217,8 @@ class MemWorker(object):
 
             if b:
                 if ftype=="lambda":
-                    for res in func(b.decode('latin'), offset):
-                        yield res
+                    yield from func(b.decode('latin'), offset)
                 else:
-                    for res in func(b.decode('latin'), value, offset):
-                        yield res
+                    yield from func(b.decode('latin'), value, offset)
 
 

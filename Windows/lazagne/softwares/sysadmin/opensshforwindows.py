@@ -68,9 +68,7 @@ class OpenSSHForWindows(ModuleInfo):
                             if key_algorithm:
                                 keys.append(key_content_encoded)
                         except Exception as e:
-                            self.error(u"Cannot load key file '%s' '%s'" % (key_file_path, e))
-                            pass
-
+                            self.error(f"Cannot load key file '{key_file_path}' '{e}'")
         return keys
 
     def run(self):

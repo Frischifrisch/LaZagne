@@ -92,11 +92,7 @@ class IE(ModuleInfo):
                              stdin=subprocess.PIPE, universal_newlines=True)
         results, _ = p.communicate()
 
-        urls = []
-        for r in results.split('\n'):
-            if r.startswith('http'):
-                urls.append(r.strip())
-        return urls
+        return [r.strip() for r in results.split('\n') if r.startswith('http')]
 
     def history_from_regedit(self):
         urls = []
@@ -108,8 +104,7 @@ class IE(ModuleInfo):
 
         num = winreg.QueryInfoKey(hkey)[1]
         for x in range(0, num):
-            k = winreg.EnumValue(hkey, x)
-            if k:
+            if k := winreg.EnumValue(hkey, x):
                 urls.append(k[1])
         winreg.CloseKey(hkey)
         return urls
@@ -133,14 +128,18 @@ class IE(ModuleInfo):
         possible_logins = [x for n, x in enumerate(chunks_reversed) if n % 2 == 1]
         for possible_login, possible_password in zip(possible_logins, possible_passwords):
             #  Service data starts with several blocks of "<2_bytes>\x00\x00<10_bytes>"
-            if len(pwd_found) > 0 and len(possible_login) == 2 and len(possible_password) == 10:
+            if (
+                pwd_found
+                and len(possible_login) == 2
+                and len(possible_password) == 10
+            ):
                 break
 
             try:
                 possible_login_str = possible_login.decode('UTF-16LE')
                 possible_password_str = possible_password.decode('UTF-16LE')
             except UnicodeDecodeError:
-                if len(pwd_found) > 0:
+                if pwd_found:
                     #  Some passwords have been found. Assume this is service data.
                     break
 
@@ -167,16 +166,15 @@ class IE(ModuleInfo):
         except Exception:
             self.debug(traceback.format_exc())
         else:
-            nb_site = 0
             nb_pass_found = 0
 
             # retrieve the urls from the history
             hash_tables = self.get_hash_table()
 
             num = winreg.QueryInfoKey(hkey)[1]
+            nb_site = 0
             for x in range(0, num):
-                k = winreg.EnumValue(hkey, x)
-                if k:
+                if k := winreg.EnumValue(hkey, x):
                     nb_site += 1
                     for h in hash_tables:
                         # both hash are similar, we can decipher the password
@@ -190,7 +188,8 @@ class IE(ModuleInfo):
 
             # manage errors
             if nb_site > nb_pass_found:
-                self.error(u'%s hashes have not been decrypted, the associate website used to decrypt the '
-                           u'passwords has not been found' % str(nb_site - nb_pass_found))
+                self.error(
+                    f'{str(nb_site - nb_pass_found)} hashes have not been decrypted, the associate website used to decrypt the passwords has not been found'
+                )
 
         return pwd_found

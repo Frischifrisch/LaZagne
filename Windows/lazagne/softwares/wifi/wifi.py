@@ -20,8 +20,7 @@ class Wifi(ModuleInfo):
         Needs admin priv but will work with all systems
         """
         if constant.system_dpapi and constant.system_dpapi.unlocked:
-            decrypted_blob = constant.system_dpapi.decrypt_wifi_blob(key)
-            if decrypted_blob:
+            if decrypted_blob := constant.system_dpapi.decrypt_wifi_blob(key):
                 try:
                     return decrypted_blob.decode(sys.getfilesystemencoding())
                 except UnicodeDecodeError:
@@ -48,60 +47,60 @@ class Wifi(ModuleInfo):
         stdout, stderr = process.communicate()
         for st in stdout.split(b'\n'):
             if any(i in st.lower() for i in language_keys):
-                password = st.split(b':')[1].strip()
-                return password
+                return st.split(b':')[1].strip()
 
     def run(self):
         # Run the module only once
-        if not constant.wifi_password:
-            interfaces_dir = os.path.join(constant.profile['ALLUSERSPROFILE'],
-                                          u'Microsoft\\Wlansvc\\Profiles\\Interfaces')
+        if constant.wifi_password:
+            return
+        interfaces_dir = os.path.join(constant.profile['ALLUSERSPROFILE'],
+                                      u'Microsoft\\Wlansvc\\Profiles\\Interfaces')
 
             # for windows Vista or higher
-            if os.path.exists(interfaces_dir):
+        if os.path.exists(interfaces_dir):
 
-                pwd_found = []
+            pwd_found = []
 
-                for wifi_dir in os.listdir(interfaces_dir):
-                    if os.path.isdir(os.path.join(interfaces_dir, wifi_dir)):
+            for wifi_dir in os.listdir(interfaces_dir):
+                if os.path.isdir(os.path.join(interfaces_dir, wifi_dir)):
 
-                        repository = os.path.join(interfaces_dir, wifi_dir)
-                        for file in os.listdir(repository):
-                            values = {}
-                            if os.path.isfile(os.path.join(repository, file)):
-                                f = os.path.join(repository, file)
-                                tree = ElementTree(file=f)
-                                root = tree.getroot()
-                                xmlns = root.tag.split("}")[0] + '}'
+                    repository = os.path.join(interfaces_dir, wifi_dir)
+                    for file in os.listdir(repository):
+                        values = {}
+                        if os.path.isfile(os.path.join(repository, file)):
+                            f = os.path.join(repository, file)
+                            tree = ElementTree(file=f)
+                            root = tree.getroot()
+                            xmlns = root.tag.split("}")[0] + '}'
 
-                                for elem in tree.iter():
-                                    if elem.tag.endswith('SSID'):
-                                        for w in elem:
-                                            if w.tag == xmlns + 'name':
-                                                values['SSID'] = w.text
+                            for elem in tree.iter():
+                                if elem.tag.endswith('SSID'):
+                                    for w in elem:
+                                        if w.tag == f'{xmlns}name':
+                                            values['SSID'] = w.text
 
-                                    if elem.tag.endswith('authentication'):
-                                        values['Authentication'] = elem.text
+                                if elem.tag.endswith('authentication'):
+                                    values['Authentication'] = elem.text
 
-                                    if elem.tag.endswith('protected'):
-                                        values['Protected'] = elem.text
+                                if elem.tag.endswith('protected'):
+                                    values['Protected'] = elem.text
 
-                                    if elem.tag.endswith('keyMaterial'):
-                                        key = elem.text
-                                        try:
-                                            password = self.decrypt_using_lsa_secret(key=key)
-                                            if not password:
-                                                password = self.decrypt_using_netsh(ssid=values['SSID'])
-                                            if password:
-                                                values['Password'] = password
-                                            else:
-                                                values['INFO'] = '[!] Password not found.'
-                                        except Exception:
-                                            self.error(traceback.format_exc())
+                                if elem.tag.endswith('keyMaterial'):
+                                    key = elem.text
+                                    try:
+                                        password = self.decrypt_using_lsa_secret(key=key)
+                                        if not password:
+                                            password = self.decrypt_using_netsh(ssid=values['SSID'])
+                                        if password:
+                                            values['Password'] = password
+                                        else:
                                             values['INFO'] = '[!] Password not found.'
+                                    except Exception:
+                                        self.error(traceback.format_exc())
+                                        values['INFO'] = '[!] Password not found.'
 
-                                if values and values.get('Authentication') != 'open':
-                                    pwd_found.append(values)
+                            if values and values.get('Authentication') != 'open':
+                                pwd_found.append(values)
 
-                constant.wifi_password = True
-                return pwd_found
+            constant.wifi_password = True
+            return pwd_found

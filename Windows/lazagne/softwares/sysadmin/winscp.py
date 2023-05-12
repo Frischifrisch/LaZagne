@@ -15,25 +15,24 @@ class WinSCP(ModuleInfo):
 
     # ------------------------------ Getters and Setters ------------------------------
     def decrypt_char(self):
-        hex_flag = 0xA3
-        charset = '0123456789ABCDEF'
-
         if len(self.hash) > 0:
+            charset = '0123456789ABCDEF'
+
             unpack1 = charset.find(self.hash[0])
-            unpack1 = unpack1 << 4
+            unpack1 <<= 4
 
             unpack2 = charset.find(self.hash[1])
-            result = ~((unpack1 + unpack2) ^ hex_flag) & 0xff
-
             # store the new hash
             self.hash = self.hash[2:]
 
-            return result
+            return ~(unpack1 + unpack2 ^ 0xA3) & 0xff
 
     def check_winscp_installed(self):
         try:
-            key = OpenKey(HKEY_CURRENT_USER, 'Software\\Martin Prikryl\\WinSCP 2\\Configuration\\Security')
-            return key
+            return OpenKey(
+                HKEY_CURRENT_USER,
+                'Software\\Martin Prikryl\\WinSCP 2\\Configuration\\Security',
+            )
         except Exception as e:
             self.debug(str(e))
             return False
@@ -41,10 +40,7 @@ class WinSCP(ModuleInfo):
     def check_masterPassword(self, key):
         is_master_pwd_used = winreg.QueryValueEx(key, 'UseMasterPassword')[0]
         winreg.CloseKey(key)
-        if str(is_master_pwd_used) == '0':
-            return False
-        else:
-            return True
+        return str(is_master_pwd_used) != '0'
 
     def get_credentials(self):
         try:
@@ -102,11 +98,10 @@ class WinSCP(ModuleInfo):
             length = flag
 
         ldel = (self.decrypt_char()) * 2
-        self.hash = self.hash[ldel: len(self.hash)]
+        self.hash = self.hash[ldel:]
 
         result = ''
-        for ss in range(length):
-
+        for _ in range(length):
             try:
                 result += chr(int(self.decrypt_char()))
             except Exception as e:
@@ -114,16 +109,14 @@ class WinSCP(ModuleInfo):
 
         if flag == hex_flag:
             key = username + hostname
-            result = result[len(key): len(result)]
+            result = result[len(key):]
 
         return result
 
     def run(self):
-        winscp_key = self.check_winscp_installed()
-        if winscp_key:
-            if not self.check_masterPassword(winscp_key):
-                results = self.get_credentials()
-                if results:
-                    return results
-            else:
+        if winscp_key := self.check_winscp_installed():
+            if self.check_masterPassword(winscp_key):
                 self.warning(u'A master password is used. Passwords cannot been retrieved')
+
+            elif results := self.get_credentials():
+                return results

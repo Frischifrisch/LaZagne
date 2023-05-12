@@ -92,15 +92,20 @@ def runLaZagne(category_selected='all', subcategories={}):
     This function will be removed, still there for compatibility with other tools
     Everything is on the config/run.py file
     """
-    for pwd_dic in run_lazagne(category_selected=category_selected, subcategories=subcategories):
-        yield pwd_dic
+    yield from run_lazagne(
+        category_selected=category_selected, subcategories=subcategories
+    )
 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description=constant.st.banner, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('--version', action='version', version='Version ' + str(constant.CURRENT_VERSION),
-                        help='laZagne version')
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=f'Version {str(constant.CURRENT_VERSION)}',
+        help='laZagne version',
+    )
 
     # ------------------------------------------- Permanent options -------------------------------------------
     # Version and verbosity
@@ -174,8 +179,8 @@ if __name__ == '__main__':
             if all_categories[c]['subparser']:
                 parser_tab += all_categories[c]['subparser']
         parser_tab += [PWrite]
-        dic_tmp = {c: {'parents': parser_tab, 'help': 'Run %s module' % c}}
-        dic.update(dic_tmp)
+        dic_tmp = {c: {'parents': parser_tab, 'help': f'Run {c} module'}}
+        dic |= dic_tmp
 
     # 2- Main commands
     subparsers = parser.add_subparsers(help='Choose a main command')
@@ -209,7 +214,7 @@ if __name__ == '__main__':
     category = args['auditType']
     subcategories = clean_args(args)
 
-    for run in runLaZagne(category, subcategories):
+    for _ in runLaZagne(category, subcategories):
         pass
 
     write_in_file(constant.stdout_result)

@@ -14,9 +14,9 @@ class CredFiles(ModuleInfo):
             creds_directory = os.path.join(constant.profile['APPDATA'], u'Microsoft', u'Credentials')
             if os.path.exists(creds_directory):
                 for cred_file in os.listdir(creds_directory):
-                    # decrypting creds files (Credman module not allow to retrieve domain password)
-                    cred = constant.user_dpapi.decrypt_cred(os.path.join(creds_directory, cred_file))
-                    if cred:
+                    if cred := constant.user_dpapi.decrypt_cred(
+                        os.path.join(creds_directory, cred_file)
+                    ):
                         pwd_found.append(cred)
 
         return pwd_found

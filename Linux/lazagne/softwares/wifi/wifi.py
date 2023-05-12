@@ -19,10 +19,10 @@ class Wifi(ModuleInfo):
         ModuleInfo.__init__(self, 'wifi', 'wifi')
 
     def run(self):
-        pwd_found = []
         directory = u'/etc/NetworkManager/system-connections'
 
         if os.path.exists(directory):
+            pwd_found = []
             if os.getuid() == 0:
                 wireless_ssid = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
 

@@ -38,7 +38,7 @@ class BaseProcess(object):
         return '0x%08X' % int(address)
 
     def read(self, address, type = 'uint', maxlen = 50, errors='raise'):
-        if type == 's' or type == 'string':
+        if type in ['s', 'string']:
             s = self.read_bytes(int(address), bytes=maxlen)
 
             try:
@@ -51,16 +51,15 @@ class BaseProcess(object):
                 raise ProcessException('string > maxlen')
 
         else:
-            if type == 'bytes' or type == 'b':
+            if type in ['bytes', 'b']:
                 return self.read_bytes(int(address), bytes=maxlen)
             s, l = type_unpack(type)
             return struct.unpack(s, self.read_bytes(int(address), bytes=l))[0]
 
     def write(self, address, data, type = 'uint'):
-        if type != 'bytes':
-            s, l = type_unpack(type)
-            return self.write_bytes(int(address), struct.pack(s, data))
-        else:
+        if type == 'bytes':
             return self.write_bytes(int(address), data)
+        s, l = type_unpack(type)
+        return self.write_bytes(int(address), struct.pack(s, data))
    
 

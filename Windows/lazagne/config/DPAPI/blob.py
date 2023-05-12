@@ -126,10 +126,7 @@ class DPAPIBlob(DataStruct):
         if not mks:
             return False, 'Unable to find MK for blob {mk_guid}'.format(mk_guid=self.mkguid)
 
-        entropy = None
-        if entropy_hex:
-            entropy = codecs.decode(entropy_hex, 'hex')
-
+        entropy = codecs.decode(entropy_hex, 'hex') if entropy_hex else None
         for mk in mks:
             if mk.decrypted:
                 self.decrypt(mk.get_key(), entropy=entropy)

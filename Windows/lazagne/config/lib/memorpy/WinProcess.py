@@ -58,7 +58,7 @@ class WinProcess(BaseProcess):
         self.close()
 
     def is_64bit(self):
-        if not "64" in platform.machine():
+        if "64" not in platform.machine():
             return False
         iswow64 = c_bool(False)
         if IsWow64Process is None:
@@ -86,8 +86,9 @@ class WinProcess(BaseProcess):
         pidProcess = [i for i in lpidProcess][:nReturned]
         for pid in pidProcess:
             proc={ "pid": int(pid) }
-            hProcess = kernel32.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, pid)
-            if hProcess:
+            if hProcess := kernel32.OpenProcess(
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, pid
+            ):
                 psapi.EnumProcessModules(hProcess, byref(hModule), sizeof(hModule), byref(count))
                 psapi.GetModuleBaseNameA(hProcess, hModule.value, modname, sizeof(modname))
                 proc["name"]=modname.value.decode()
@@ -97,22 +98,28 @@ class WinProcess(BaseProcess):
 
     @staticmethod
     def processes_from_name(processName):
-        processes = []
-        for process in WinProcess.list():
-            if processName == process.get("name", None) or (process.get("name","").lower().endswith(".exe") and process.get("name","")[:-4]==processName):
-                processes.append(process)
-
-        if len(processes) > 0:
+        if processes := [
+            process
+            for process in WinProcess.list()
+            if processName == process.get("name", None)
+            or (
+                process.get("name", "").lower().endswith(".exe")
+                and process.get("name", "")[:-4] == processName
+            )
+        ]:
             return processes
 
     @staticmethod
     def name_from_process(dwProcessId):
         process_list = WinProcess.list()
-        for process in process_list:
-            if process.pid == dwProcessId:
-                return process.get("name", None)
-
-        return False
+        return next(
+            (
+                process.get("name", None)
+                for process in process_list
+                if process.pid == dwProcessId
+            ),
+            False,
+        )
 
     def _open(self, dwProcessId, debug=False):
         if debug:
@@ -146,9 +153,11 @@ class WinProcess(BaseProcess):
     def _open_from_name(self, processName, debug=False):
         processes = self.processes_from_name(processName)
         if not processes:
-            raise ProcessException("can't get pid from name %s" % processName)
+            raise ProcessException(f"can't get pid from name {processName}")
         elif len(processes)>1:
-            raise ValueError("There is multiple processes with name %s. Please select a process from its pid instead"%processName)
+            raise ValueError(
+                f"There is multiple processes with name {processName}. Please select a process from its pid instead"
+            )
         if debug:
             self._open(processes[0]["pid"], debug=True)
         else:
@@ -193,13 +202,13 @@ class WinProcess(BaseProcess):
             mbi = self.VirtualQueryEx(offset)
             offset = mbi.BaseAddress
             chunk = mbi.RegionSize
-            protect = mbi.Protect
             state = mbi.State
             #print "offset: %s, chunk:%s"%(offset, chunk)
             if state & MEM_FREE or state & MEM_RESERVE:
                 offset += chunk
                 continue
             if protec:
+                protect = mbi.Protect
                 if not protect & protec or protect & PAGE_NOCACHE or protect & PAGE_WRITECOMBINE or protect & PAGE_GUARD:
                     offset += chunk
                     continue
@@ -209,7 +218,9 @@ class WinProcess(BaseProcess):
     def write_bytes(self, address, data):
         address = int(address)
         if not self.isProcessOpen:
-            raise ProcessException("Can't write_bytes(%s, %s), process %s is not open" % (address, data, self.pid))
+            raise ProcessException(
+                f"Can't write_bytes({address}, {data}), process {self.pid} is not open"
+            )
         buffer = create_string_buffer(data)
         sizeWriten = c_size_t(0)
         bufferSize = sizeof(buffer) - 1
@@ -282,20 +293,22 @@ class WinProcess(BaseProcess):
         return module_list
 
     def get_symbolic_name(self, address):
-        for m in self.list_modules():
-            if int(m.modBaseAddr) <= int(address) < int(m.modBaseAddr + m.modBaseSize):
-                return '%s+0x%08X' % (m.szModule, int(address) - m.modBaseAddr)
-
-        return '0x%08X' % int(address)
+        return next(
+            (
+                '%s+0x%08X' % (m.szModule, int(address) - m.modBaseAddr)
+                for m in self.list_modules()
+                if int(m.modBaseAddr)
+                <= int(address)
+                < int(m.modBaseAddr + m.modBaseSize)
+            ),
+            '0x%08X' % int(address),
+        )
 
     def hasModule(self, module):
         if module[-4:] != '.dll':
             module += '.dll'
         module_list = self.list_modules()
-        for m in module_list:
-            if module in m.szExePath.split('\\'):
-                return True
-        return False
+        return any(module in m.szExePath.split('\\') for m in module_list)
     
 
     def get_instruction(self, address):

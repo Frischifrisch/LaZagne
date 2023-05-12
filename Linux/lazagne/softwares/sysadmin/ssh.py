@@ -62,7 +62,7 @@ class Ssh(ModuleInfo):
             identity = None
 
             with open(config) as fconfig:
-                for line in fconfig.readlines():
+                for line in fconfig:
                     line = line.strip()
 
                     if line.startswith('#'):

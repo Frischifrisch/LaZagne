@@ -86,14 +86,12 @@ class Env_variable(ModuleInfo):
                             'Host': parsed.hostname,
                         }
                         if parsed.port:
-                            pw.update({
-                                'Port': parsed.port
-                            })
+                            pw['Port'] = parsed.port
 
                         pwd_found.append(pw)
 
                 for token, kvars in tokens:
-                    if not kvars['KEY'] in environ:
+                    if kvars['KEY'] not in environ:
                         continue
 
                     secret = environ[kvars['KEY']]
@@ -107,19 +105,18 @@ class Env_variable(ModuleInfo):
                     }
 
                     if kvars['ID'] and kvars['ID'] in environ:
-                        pw.update({'ID': environ[kvars['ID']]})
+                        pw['ID'] = environ[kvars['ID']]
 
                     pwd_found.append(pw)
                     known_tokens.add(secret)
 
                 for i in environ:
-                    for t in ['passwd', 'pwd', 'pass', 'password']:
-                        if (t.upper() in i.upper()) and (i.upper() not in blacklist):
-                            pwd_found.append({
-                                'Login': i,
-                                'Password': environ[i]
-                            })
-
+                    pwd_found.extend(
+                        {'Login': i, 'Password': environ[i]}
+                        for t in ['passwd', 'pwd', 'pass', 'password']
+                        if (t.upper() in i.upper())
+                        and (i.upper() not in blacklist)
+                    )
             return pwd_found
 
         except AttributeError:

@@ -22,10 +22,7 @@ def char_to_int(string):
         return string  # Python 3
 
 def chr_or_byte(integer):
-    if sys.version_info[0] == 2:
-        return chr(integer)
-    else:
-        return bytes([integer])  # Python 3
+    return chr(integer) if sys.version_info[0] == 2 else bytes([integer])
 
 
 # this is what you want to call.
@@ -67,7 +64,7 @@ def pbkdf2_F(h, salt, itercount, blocknum):
     U = prf(h, salt + pack('>i', blocknum))
     T = U
 
-    for i in range(2, itercount + 1):
+    for _ in range(2, itercount + 1):
         U = prf(h, U)
         T = xorstr(T, U)
 

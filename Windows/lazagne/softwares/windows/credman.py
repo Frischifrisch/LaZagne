@@ -21,8 +21,10 @@ class Credman(ModuleInfo):
         if CredEnumerate(None, 0, byref(count), byref(creds)) == 1:
             for i in range(count.value):
                 c = creds[i].contents
-                if c.Type == CRED_TYPE_GENERIC or c.Type == CRED_TYPE_DOMAIN_VISIBLE_PASSWORD:
-                    # Remove password too long
+                if c.Type in [
+                    CRED_TYPE_GENERIC,
+                    CRED_TYPE_DOMAIN_VISIBLE_PASSWORD,
+                ]:
                     if c.CredentialBlobSize.real < 200:
                         pwd_found.append({
                             'URL': c.TargetName,

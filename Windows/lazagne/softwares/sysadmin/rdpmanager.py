@@ -46,10 +46,7 @@ class RDPManager(ModuleInfo):
             for r in root.findall(element):
                 values = {}
                 for child in r.getchildren():
-                    if child.tag == 'properties':
-                        for c in child.getchildren():
-                            values = self.check_tag_content(values, c)
-                    elif child.tag == 'logonCredentials':
+                    if child.tag in ['properties', 'logonCredentials']:
                         for c in child.getchildren():
                             values = self.check_tag_content(values, c)
                     else:
@@ -89,7 +86,7 @@ class RDPManager(ModuleInfo):
                 try:
                     for r in root.find('FilesToOpen'):
                         if os.path.exists(r.text):
-                            self.debug(u'New setting file found: %s' % r.text)
+                            self.debug(f'New setting file found: {r.text}')
                             pwd_found += self.parse_xml(r.text)
                 except Exception:
                     pass

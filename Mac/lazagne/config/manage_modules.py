@@ -15,12 +15,11 @@ from lazagne.softwares.system.system import System
 
 
 def get_categories():
-    category = {
+    return {
         'browsers': {'help': 'Web browsers supported'},
         'mails': {'help': 'Email clients supported'},
         'system': {'help': 'System credentials'},
     }
-    return category
 
 
 def get_modules():

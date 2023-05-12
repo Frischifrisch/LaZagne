@@ -13,9 +13,9 @@ class Tortoise(ModuleInfo):
         ModuleInfo.__init__(self, 'tortoise', 'svn', winapi_used=True)
 
     def run(self):
-        pwd_found = []
         path = os.path.join(constant.profile["APPDATA"], u'Subversion\\auth\\svn.simple')
         if os.path.exists(path):
+            pwd_found = []
             for root, dirs, files in os.walk(path + os.sep):
                 for filename in files:
                     f = open(os.path.join(path, filename), 'r')

@@ -16,15 +16,21 @@ class IISAppPool(ModuleInfo):
         """
         founded_files = []
         for dirpath, dirnames, files in os.walk(path):
-            for file_name in files:
-                if fnmatch.fnmatch(file_name, file):
-                    founded_files.append(dirpath + '\\' + file_name)
-
+            founded_files.extend(
+                dirpath + '\\' + file_name
+                for file_name in files
+                if fnmatch.fnmatch(file_name, file)
+            )
         return founded_files
 
     def execute_get_stdout(self, exe_file, arguments):
         try:
-            proc = subprocess.Popen(exe_file + " " + arguments, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.Popen(
+                f"{exe_file} {arguments}",
+                shell=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
 
         except:
             self.debug(u'Error executing {exefile}'.format(exefile=exe_file))
@@ -42,21 +48,20 @@ class IISAppPool(ModuleInfo):
 
         self.info(u'appcmd.exe files found: {files}'.format(files=exe_files))
         output = self.execute_get_stdout(exe_files[-1], 'list apppool')
-        if output == None:
+        if output is None:
             self.debug(u'Problems with Application Pool list')
             return
 
-        app_list = []
-        for line in output.readlines():
-            app_list.append(re.findall(r'".*"', line)[0].split('"')[1])
-            
-
+        app_list = [
+            re.findall(r'".*"', line)[0].split('"')[1]
+            for line in output.readlines()
+        ]
         for app in app_list:
             values = {}
             username = ''
             password = ''
-            
-            output = self.execute_get_stdout(exe_files[-1], 'list apppool ' + app + ' /text:*')
+
+            output = self.execute_get_stdout(exe_files[-1], f'list apppool {app} /text:*')
 
             for line in output.readlines():
                 if re.search(r'userName:".*"', line):
@@ -71,6 +76,6 @@ class IISAppPool(ModuleInfo):
                 values['Password'] = password 
 
                 pfound.append(values)
-				
-        
+
+
         return pfound 

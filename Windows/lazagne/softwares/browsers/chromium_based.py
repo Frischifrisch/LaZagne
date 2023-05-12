@@ -141,24 +141,22 @@ class ChromiumBased(ModuleInfo):
                     # cipher = AES.new(yandex_enckey, AES.MODE_GCM)
                     # plaintext = cipher.decrypt(password)
                     # Failed...
+                elif password and password.startswith(b'v10'):  # chromium > v80
+                    if master_key:
+                        password = self._decrypt_v80(password, master_key)
                 else:
-                    # Decrypt the Password
-                    if password and password.startswith(b'v10'):  # chromium > v80
-                        if master_key:
-                            password = self._decrypt_v80(password, master_key)
-                    else:
+                    try:
+                        password_bytes = Win32CryptUnprotectData(password, is_current_user=constant.is_current_user,
+                                                                user_dpapi=constant.user_dpapi)
+                    except AttributeError:
                         try:
                             password_bytes = Win32CryptUnprotectData(password, is_current_user=constant.is_current_user,
-                                                                    user_dpapi=constant.user_dpapi)
-                        except AttributeError:
-                            try:
-                                password_bytes = Win32CryptUnprotectData(password, is_current_user=constant.is_current_user,
-                                                                     user_dpapi=constant.user_dpapi)
-                            except:
-                                password_bytes = None
+                                                                 user_dpapi=constant.user_dpapi)
+                        except:
+                            password_bytes = None
 
-                        if password_bytes not in [None, False]:
-                            password = password_bytes.decode("utf-8")
+                    if password_bytes not in [None, False]:
+                        password = password_bytes.decode("utf-8")
 
                 if not url and not login and not password:
                     continue
@@ -176,7 +174,9 @@ class ChromiumBased(ModuleInfo):
         Using user tempfile will produce an error when impersonating users (Permission denied)
         A public directory should be used if this error occured (e.g C:\\Users\\Public)
         """
-        random_name = ''.join([random.choice(string.ascii_lowercase) for i in range(9)])
+        random_name = ''.join(
+            [random.choice(string.ascii_lowercase) for _ in range(9)]
+        )
         root_dir = [
             tempfile.gettempdir(),
             os.environ.get('PUBLIC', None),
@@ -201,7 +201,7 @@ class ChromiumBased(ModuleInfo):
     def run(self):
         credentials = []
         for database_path, master_key in self._get_database_dirs():
-            is_yandex = False if 'yandex' not in database_path.lower() else True
+            is_yandex = 'yandex' in database_path.lower()
 
             # Remove Google Chrome false positif
             if database_path.endswith('Login Data-journal'):
@@ -209,9 +209,7 @@ class ChromiumBased(ModuleInfo):
 
             self.debug('Database found: {db}'.format(db=database_path))
 
-            # Copy database before to query it (bypass lock errors)
-            path = self.copy_db(database_path)
-            if path:
+            if path := self.copy_db(database_path):
                 try:
                     credentials.extend(self._export_credentials(path, is_yandex, master_key))
                 except Exception:

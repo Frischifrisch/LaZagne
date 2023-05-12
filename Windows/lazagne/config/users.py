@@ -69,13 +69,10 @@ def get_username_winapi():
     _buffer = ctypes.create_unicode_buffer(1)
     size = ctypes.c_uint(len(_buffer))
     while not GetUserNameW(_buffer, ctypes.byref(size)):
-        # WinError.h
-        # define ERROR_INSUFFICIENT_BUFFER        122L    // dderror
-        if ctypes.GetLastError() == 122:
-            _buffer = ctypes.create_unicode_buffer(len(_buffer)*2)
-            size.value = len(_buffer)
-        
-        else:
+        if ctypes.GetLastError() != 122:
             return os.getenv('username') # Unusual error
+
+        _buffer = ctypes.create_unicode_buffer(len(_buffer)*2)
+        size.value = len(_buffer)
 
     return _buffer.value

@@ -46,9 +46,7 @@ class WindowsPassword(ModuleInfo):
         # Password not already found
         pwd_found = []
         if constant.user_dpapi and constant.user_dpapi.unlocked:
-            # Check if a password already found is a windows password
-            password = constant.user_dpapi.get_cleartext_password()
-            if password:
+            if password := constant.user_dpapi.get_cleartext_password():
                 pwd_found.append({
                     'Login': constant.username,
                     'Password': password
@@ -63,12 +61,8 @@ class WindowsPassword(ModuleInfo):
                     u'Try to bruteforce this hash (using john or hashcat)'
                 )
                 if constant.user_dpapi:
-                    context = 'local'
-                    if self.is_in_domain():
-                        context = 'domain'
-
-                    h = constant.user_dpapi.get_dpapi_hash(context=context)
-                    if h:
+                    context = 'domain' if self.is_in_domain() else 'local'
+                    if h := constant.user_dpapi.get_dpapi_hash(context=context):
                         pwd_found.append({
                             'Dpapi_hash_{context}'.format(context=context): constant.user_dpapi.get_dpapi_hash(
                                                                                                     context=context)

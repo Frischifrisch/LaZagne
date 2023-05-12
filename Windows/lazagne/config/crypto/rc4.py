@@ -10,14 +10,7 @@ class RC4(object):
         self.key_bytes = self.text_to_bytes(key)
 
     def text_to_bytes(self, text):
-        byte_list = []
-
-        # on Windows, default coding for Chinese is GBK
-        # s = s.decode('gbk').encode('utf-8')
-        for byte in text:
-            byte_list.append(char_to_int(byte))
-
-        return byte_list
+        return [char_to_int(byte) for byte in text]
 
     def bytes_to_text(self, byte_list):
         s = b''

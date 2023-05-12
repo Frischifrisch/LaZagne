@@ -97,17 +97,13 @@ class HiveFileAddressSpace:
         else:
             if length < first_block:
                 stuff_read = self.base.read(paddr, length)
-                if not stuff_read and zero:
-                    return "\0" * length
-                else:
-                    return stuff_read
-
+                return "\0" * length if not stuff_read and zero else stuff_read
             stuff_read = self.base.read(paddr, first_block)
             if not stuff_read and zero:
                 stuff_read = "\0" * first_block
 
         new_vaddr = vaddr + first_block
-        for i in range(0, full_blocks):
+        for _ in range(0, full_blocks):
             paddr = self.vtop(new_vaddr)
             if not paddr and zero:
                 stuff_read = stuff_read + "\0" * BLOCK_SIZE
@@ -140,5 +136,4 @@ class HiveFileAddressSpace:
 
     def is_valid_address(self, vaddr):
         paddr = self.vtop(vaddr)
-        if not paddr: return False
-        return self.base.is_valid_address(paddr)
+        return False if not paddr else self.base.is_valid_address(paddr)

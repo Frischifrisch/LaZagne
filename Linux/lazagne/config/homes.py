@@ -108,7 +108,7 @@ def sessions(setenv=True):
                 if setenv:
                     previous_uid = os.geteuid()
 
-                    if not uid == previous_uid:
+                    if uid != previous_uid:
                         try:
                             os.seteuid(uid)
                         except Exception:

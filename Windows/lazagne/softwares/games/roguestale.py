@@ -12,13 +12,13 @@ class RoguesTale(ModuleInfo):
         ModuleInfo.__init__(self, 'roguestale', 'games')
 
     def run(self):
-        creds = []
         directory = constant.profile['USERPROFILE'] + u'\\Documents\\Rogue\'s Tale\\users'
 
         # The actual user details are stored in *.userdata files
         if os.path.exists(directory):
             files = os.listdir(directory)
 
+            creds = []
             for f in files:
                 if re.match('.*\.userdata', f):
                     # We've found a user file, now extract the hash and username
@@ -29,7 +29,7 @@ class RoguesTale(ModuleInfo):
 
                     # Double check to make sure that the file is valid
                     if root.tag != 'user':
-                        self.warning(u'Profile %s does not appear to be valid' % f)
+                        self.warning(f'Profile {f} does not appear to be valid')
                         continue
 
                     # Now save it to credentials

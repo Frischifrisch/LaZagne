@@ -23,9 +23,7 @@ class PSI(ModuleInfo):
 
         for one_dir in _dirs:
             _path = os.path.join(constant.profile['APPDATA'], one_dir)
-            accs_files = glob(_path)
-            for one_file in accs_files:
-                yield one_file
+            yield from glob(_path)
 
     # Thanks to https://github.com/jose1711/psi-im-decrypt
     def decode_password(self, password, jid):

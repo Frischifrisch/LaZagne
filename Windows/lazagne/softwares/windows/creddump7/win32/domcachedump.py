@@ -43,8 +43,7 @@ def decrypt_hash(edata, nlkm, ch):
     rc4key = hmac_md5.digest()
 
     rc4 = RC4(rc4key)
-    data = rc4.encrypt(edata)
-    return data
+    return rc4.encrypt(edata)
 
 
 def decrypt_hash_vista(edata, nlkm, ch):
@@ -140,7 +139,7 @@ def dump_file_hashes(syshive_fname, sechive_fname, vista):
     sysaddr = HiveFileAddressSpace(syshive_fname)
     secaddr = HiveFileAddressSpace(sechive_fname)
 
-    results = []
-    for (u, d, dn, hash) in dump_hashes(sysaddr, secaddr, vista):
-        results.append("%s:%s:%s:%s" % (u.lower(), hash.encode('hex'), d.lower(), dn.lower()))
-    return results
+    return [
+        f"{u.lower()}:{hash.encode('hex')}:{d.lower()}:{dn.lower()}"
+        for u, d, dn, hash in dump_hashes(sysaddr, secaddr, vista)
+    ]

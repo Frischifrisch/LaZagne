@@ -104,7 +104,7 @@ class SunProcess(BaseProcess):
             except:
                 pass
 
-        raise ProcessException('No process with such name: %s'%name)
+        raise ProcessException(f'No process with such name: {name}')
 
     def iter_region(self, start_offset=None, end_offset=None, protec=None, optimizations=None):
         """

@@ -31,14 +31,16 @@ class ApacheDirectoryStudio(ModuleInfo):
                     connections = parse(connection_file_location).getroot()
                     connection_nodes = connections.findall(".//connection")
                     for connection_node in connection_nodes:
-                        creds = {}
-                        for connection_attr_name in connection_node.attrib:
-                            if connection_attr_name in self.attr_to_extract:
-                                creds[connection_attr_name] = connection_node.attrib[connection_attr_name].strip()
-                        if creds:
+                        if creds := {
+                            connection_attr_name: connection_node.attrib[
+                                connection_attr_name
+                            ].strip()
+                            for connection_attr_name in connection_node.attrib
+                            if connection_attr_name in self.attr_to_extract
+                        }:
                             repos_creds.append(creds)
                 except Exception as e:
-                    self.error(u"Cannot retrieve connections credentials '%s'" % e)
+                    self.error(f"Cannot retrieve connections credentials '{e}'")
 
         return repos_creds
 
@@ -49,15 +51,13 @@ class ApacheDirectoryStudio(ModuleInfo):
         # Extract all available connections credentials
         repos_creds = self.extract_connections_credentials()
 
-        # Parse and process the list of connections credentials
-        pwd_found = []
-        for creds in repos_creds:
-            pwd_found.append({
-                "Host"                  : creds["host"],
-                "Port"                  : creds["port"],
-                "Login"                 : creds["bindPrincipal"],
-                "Password"              : creds["bindPassword"],
-                "AuthenticationMethod"  : creds["authMethod"]
-            })
-
-        return pwd_found
+        return [
+            {
+                "Host": creds["host"],
+                "Port": creds["port"],
+                "Login": creds["bindPrincipal"],
+                "Password": creds["bindPassword"],
+                "AuthenticationMethod": creds["authMethod"],
+            }
+            for creds in repos_creds
+        ]

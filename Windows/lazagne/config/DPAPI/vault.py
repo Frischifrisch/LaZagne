@@ -47,7 +47,7 @@ class VaultPolicyKey(DataStruct):
         self.cbKeyData = data.eat("L")
         if self.cbKeyData > 0:
             # self.key = data.eat_sub(self.cbKeyData)
-            self.key = data.eat(str(self.cbKeyData) + "s")
+            self.key = data.eat(f"{str(self.cbKeyData)}s")
 
 
 
@@ -151,13 +151,13 @@ class VaultAttribute(DataStruct):
         self.size = data.eat("L")
         if self.size > 0:
             self.has_iv = ord(data.eat("1s"))
-            
+
             if self.has_iv == 1:
                 self.iv_size = data.eat("L")
-                self.iv = data.eat(str(self.iv_size)+ "s")
-                self.data = data.eat(str(self.size - 1 - 4 - self.iv_size) + "s")
+                self.iv = data.eat(f"{str(self.iv_size)}s")
+                self.data = data.eat(f"{str(self.size - 1 - 4 - self.iv_size)}s")
             else:
-                self.data = data.eat(str(self.size - 1) + "s")
+                self.data = data.eat(f"{str(self.size - 1)}s")
 
 
 class VaultAttributeMapEntry(DataStruct):
@@ -204,7 +204,7 @@ class VaultVcrd(DataStruct):
         self.attributes_array_size = data.eat("L")
         # 12 is the size of the VAULT_ATTRIBUTE_MAP_ENTRY
         self.attributes_num = self.attributes_array_size // 12
-        for i in range(self.attributes_num):
+        for _ in range(self.attributes_num):
             # 12: size of VaultAttributeMapEntry Structure
             v_map_entry = VaultAttributeMapEntry(data.eat("12s"))
             self.attributes.append(v_map_entry)
@@ -256,7 +256,7 @@ class VaultSchemaGeneric(DataStruct):
         self.version = data.eat("L")
         self.count = data.eat("L")
         self.vault_schema_generic_unknown1 = data.eat("L")
-        for i in range(self.count):
+        for _ in range(self.count):
             self.attribute_item.append(
                 VaultAttributeItem(
                     id_=data.eat("L"),
@@ -477,10 +477,7 @@ class Vault(object):
 
                     # Parse value found
                     for k, v in sorted(attributes_data.items()):
-                        # Parse decrypted data depending on its schema
-                        dataout = v['schema'](v['data'])
-
-                        if dataout: 
+                        if dataout := v['schema'](v['data']):
                             return True, {
                                     'URL': dataout.resource,
                                     'Login': dataout.identity,

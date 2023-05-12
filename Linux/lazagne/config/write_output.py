@@ -52,12 +52,12 @@ class StandardOutput():
 
     # Info option for the logging
     def print_title(self, title):
-        t = u'------------------- ' + title + ' passwords -----------------\n'
+        t = f'------------------- {title}' + ' passwords -----------------\n'
         self.do_print(message=t, color='white')
 
     # Debug option for the logging
     def title_info(self, title):
-        t = u'------------------- ' + title + ' passwords -----------------\n'
+        t = f'------------------- {title}' + ' passwords -----------------\n'
         self.print_logging(function=logging.info, prefix='', message=t, color=False)
 
     def write_header(self):
@@ -145,28 +145,20 @@ class StandardOutput():
             to_write = []
 
             # Remove duplicated password
-            pwd_found = [OrderedDict(t) for t in set([tuple(d.items()) for d in pwd_found])]
+            pwd_found = [OrderedDict(t) for t in {tuple(d.items()) for d in pwd_found}]
 
             for pwd in pwd_found:
                 password_category = False
                 # Detect which kinds of password has been found
                 lower_list = [s.lower() for s in pwd]
-                password = [s for s in lower_list if "password" in s]
-
-                if password:
+                if password := [s for s in lower_list if "password" in s]:
                     password_category = password
-                else:
-                    key = [s for s in lower_list if "key" in s]  # for the wifi
-                    if key:
-                        password_category = key
-                    else:
-                        hash = [s for s in lower_list if "hash" in s]
-                        if hash:
-                            password_category = hash
-                        else:
-                            cmd = [s for s in lower_list if "cmd" in s]
-                            if cmd:
-                                password_category = cmd
+                elif key := [s for s in lower_list if "key" in s]:
+                    password_category = key
+                elif hash := [s for s in lower_list if "hash" in s]:
+                    password_category = hash
+                elif cmd := [s for s in lower_list if "cmd" in s]:
+                    password_category = cmd
 
                 # Do not print empty passwords
                 try:
@@ -198,7 +190,7 @@ class StandardOutput():
                         to_write.append(pwd)
 
                 for p in pwd:
-                    self.do_print('%s: %s' % (p, pwd[p]))
+                    self.do_print(f'{p}: {pwd[p]}')
                 self.do_print()
 
             # Write credentials into a text file
@@ -216,11 +208,10 @@ def print_debug(error_level, message):
     if error_level == 'OK':
         constant.st.do_print(message='[+] {message}'.format(message=message), color='green')
 
-    # Print when password is not found
     elif error_level == 'ERROR':
         constant.st.do_print(message='[-] {message}'.format(message=message), color='red')
 
-    elif error_level == 'CRITICAL' or error_level == 'ERROR':
+    elif error_level == 'CRITICAL':
         constant.st.print_logging(function=logging.error, prefix='[-]', message=message, color='red')
 
     elif error_level == 'WARNING':
@@ -284,24 +275,34 @@ def write_in_file(result):
         try:
             # Human readable Json format
             pretty_json = json.dumps(result, sort_keys=True, indent=4, separators=(',', ': '))
-            with open(os.path.join(constant.folder_name, constant.file_name_results + '.json'), 'a+b') as f:
+            with open(os.path.join(constant.folder_name, f'{constant.file_name_results}.json'), 'a+b') as f:
                 f.write(pretty_json.encode('UTF-8'))
 
-            constant.st.do_print(u'[+] File written: {file}'.format(
-                file=os.path.join(constant.folder_name, constant.file_name_results + '.json'))
+            constant.st.do_print(
+                u'[+] File written: {file}'.format(
+                    file=os.path.join(
+                        constant.folder_name,
+                        f'{constant.file_name_results}.json',
+                    )
+                )
             )
         except Exception as e:
             print_debug('ERROR', u'Error writing the output file: {error}'.format(error=e))
 
     if constant.output in ('txt', 'all'):
         try:
-            with open(os.path.join(constant.folder_name, constant.file_name_results + '.txt'), 'a+b') as f:
+            with open(os.path.join(constant.folder_name, f'{constant.file_name_results}.txt'), 'a+b') as f:
                 a = parse_json_result_to_buffer(result)
                 f.write(a.encode("UTF-8"))
 
             constant.st.write_footer()
-            constant.st.do_print(u'[+] File written: {file}'.format(
-                file=os.path.join(constant.folder_name, constant.file_name_results + '.txt'))
+            constant.st.do_print(
+                u'[+] File written: {file}'.format(
+                    file=os.path.join(
+                        constant.folder_name,
+                        f'{constant.file_name_results}.txt',
+                    )
+                )
             )
         except Exception as e:
             print_debug('ERROR', u'Error writing the output file: {error}'.format(error=e))

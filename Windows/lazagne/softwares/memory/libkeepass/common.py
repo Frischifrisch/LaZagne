@@ -91,13 +91,15 @@ class HeaderDictionary(dict):
             dict.__setitem__(self, self.fields[key], val)
 
     def __getattr__(self, key):
+
+
+
         class wrap(object):
             def __init__(self, d):
                 object.__setattr__(self, 'd', d)
 
             def __getitem__(self, key):
-                fmt = self.d.fmt.get(self.d.fields.get(key, key))
-                if fmt:
+                if fmt := self.d.fmt.get(self.d.fields.get(key, key)):
                     return struct.pack(fmt, self.d[key])
                 else:
                     return self.d[key]
@@ -105,13 +107,13 @@ class HeaderDictionary(dict):
             __getattr__ = __getitem__
 
             def __setitem__(self, key, val):
-                fmt = self.d.fmt.get(self.d.fields.get(key, key))
-                if fmt:
+                if fmt := self.d.fmt.get(self.d.fields.get(key, key)):
                     self.d[key] = struct.unpack(fmt, val)[0]
                 else:
                     self.d[key] = val
 
             __setattr__ = __setitem__
+
 
         if key == 'b':
             return wrap(self)
@@ -153,7 +155,7 @@ class KDBFile(object):
             self.read_from(stream)
 
     def read_from(self, stream):
-        if not (isinstance(stream, io.IOBase) or isinstance(stream, file_types)):
+        if not (isinstance(stream, (io.IOBase, file_types))):
             raise TypeError('Stream does not have the buffer interface.')
         self._read_header(stream)
         self._decrypt(stream)
@@ -265,10 +267,7 @@ def load_plain_keyfile(filename):
         if len(key) == 32:
             return key
         # if the length is 64 bytes we assume the key is hex encoded
-        if len(key) == 64:
-            return codecs.decode(key, 'hex')
-        # anything else may be a file to hash for the key
-        return sha256(key)
+        return codecs.decode(key, 'hex') if len(key) == 64 else sha256(key)
     # raise IOError('Could not read keyfile.')
 
 
@@ -276,7 +275,7 @@ def stream_unpack(stream, offset, length, typecode='I'):
     if offset is not None:
         stream.seek(offset)
     data = stream.read(length)
-    return struct.unpack('<' + typecode, data)[0]
+    return struct.unpack(f'<{typecode}', data)[0]
 
 
 def read_signature(stream):

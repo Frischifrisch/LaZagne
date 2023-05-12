@@ -23,18 +23,21 @@ class ChainBreaker(ModuleInfo):
         users_dir = '/Users'
         users_list = []
         if os.path.exists(users_dir):
-            for user in os.listdir(users_dir):
-                if user != 'Shared' and not user.startswith('.'):
-                    users_list.append(user)
-
+            users_list.extend(
+                user
+                for user in os.listdir(users_dir)
+                if user != 'Shared' and not user.startswith('.')
+            )
         return users_list
 
     def list_keychains(self, keychains_path):
         keychains = []
         if os.path.exists(keychains_path):
-            for f in os.listdir(keychains_path):
-                if 'keychain' in f:
-                    keychains.append(os.path.join(keychains_path, f))
+            keychains.extend(
+                os.path.join(keychains_path, f)
+                for f in os.listdir(keychains_path)
+                if 'keychain' in f
+            )
         return keychains
 
     def run(self):
@@ -61,10 +64,10 @@ class ChainBreaker(ModuleInfo):
         except Exception as e:
             self.debug('SystemKey file could not be openned: {error}'.format(error=str(e)))
             try:
+                c = 'sudo hexdump -e \'16/1 "%02x" ""\' -s 8 -n 24 /private/var/db/SystemKey |' \
+                        'xargs python -c \'import sys;print sys.argv[1].upper()\''
                 # try to open the file using a password found (supposing a password is also used as a system password)
                 for pwd in passwords:
-                    c = 'sudo hexdump -e \'16/1 "%02x" ""\' -s 8 -n 24 /private/var/db/SystemKey |' \
-                        'xargs python -c \'import sys;print sys.argv[1].upper()\''
                     cmd = 'echo {password}|sudo -S {cmd}'.format(password=pwd, cmd=c)
 
                     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -85,8 +88,7 @@ class ChainBreaker(ModuleInfo):
                     password=password)
                 )
                 try:
-                    creds = dump_creds(keychain, password=str(password))
-                    if creds:
+                    if creds := dump_creds(keychain, password=str(password)):
                         pwd_found += creds
                         pwd_ok = True
                         constant.keychains_pwd.append(
@@ -96,7 +98,9 @@ class ChainBreaker(ModuleInfo):
                             }
                         )
                 except Exception:
-                    self.error('Check the password entered, this one not work (pwd: %s)' % str(password))
+                    self.error(
+                        f'Check the password entered, this one not work (pwd: {str(password)})'
+                    )
                     self.error(traceback.format_exc())
 
                 if pwd_ok:
@@ -104,8 +108,7 @@ class ChainBreaker(ModuleInfo):
 
             if system_key and not pwd_ok:
                 try:
-                    creds = dump_creds(keychain, key=str(system_key))
-                    if creds:
+                    if creds := dump_creds(keychain, key=str(system_key)):
                         pwd_found += creds
                         pwd_ok = True
                         constant.keychains_pwd.append(
@@ -115,7 +118,9 @@ class ChainBreaker(ModuleInfo):
                             }
                         )
                 except Exception:
-                    self.error('Check the system key found, this one not work (key: %s)' % str(system_key))
+                    self.error(
+                        f'Check the system key found, this one not work (key: {str(system_key)})'
+                    )
                     self.debug(traceback.format_exc())
 
         # keep in memory all passwords stored on the keychain

@@ -43,14 +43,14 @@ builtin_types = {
 
 def obj_size(types, objname):
     if objname not in types:
-        raise Exception('Invalid type %s not in types' % objname)
+        raise Exception(f'Invalid type {objname} not in types')
 
     return types[objname][0]
 
 
 def builtin_size(builtin):
     if builtin not in builtin_types:
-        raise Exception('Invalid built-in type %s' % builtin)
+        raise Exception(f'Invalid built-in type {builtin}')
 
     return builtin_types[builtin][0]
 
@@ -61,7 +61,7 @@ def read_value(addr_space, value_type, vaddr):
     """
 
     if value_type not in builtin_types:
-        raise Exception('Invalid built-in type %s' % value_type)
+        raise Exception(f'Invalid built-in type {value_type}')
 
     type_unpack_char = builtin_types[value_type][1]
     type_size = builtin_types[value_type][0]
@@ -110,9 +110,7 @@ def read_string(addr_space, types, member_list, vaddr, max_length=256):
     if len(member_list) > 1:
         (offset, current_type) = get_obj_offset(types, member_list)
 
-    val = addr_space.read(vaddr + offset, max_length)
-
-    return val
+    return addr_space.read(vaddr + offset, max_length)
 
 
 def read_null_string(addr_space, types, member_list, vaddr, max_length=256):
@@ -152,13 +150,13 @@ def get_obj_offset(types, member_list):
             continue
 
         elif current_type not in types:
-            raise Exception('Invalid type ' + current_type)
+            raise Exception(f'Invalid type {current_type}')
 
         member_dict = types[current_type][1]
 
         current_member = member_list.pop()
         if current_member not in member_dict:
-            raise Exception('Invalid member %s in type %s' % (current_member, current_type))
+            raise Exception(f'Invalid member {current_member} in type {current_type}')
 
         offset += member_dict[current_member][0]
 
@@ -173,7 +171,7 @@ def read_obj(addr_space, types, member_list, vaddr):
     The type must have members.
     """
     if len(member_list) < 2:
-        raise Exception('Invalid type/member ' + str(member_list))
+        raise Exception(f'Invalid type/member {str(member_list)}')
 
     (offset, current_type) = get_obj_offset(types, member_list)
     return read_value(addr_space, current_type, vaddr + offset)

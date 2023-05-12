@@ -104,30 +104,17 @@ def deskey(key, decrypt):  # Thanks to James Gillogly & Phil Karn!
     for j in range(56):
         l = pc1[j]
         m = l & 0o7
-        if key[l >> 3] & bytebit[m]:
-            pc1m[j] = 1
-        else:
-            pc1m[j] = 0
-
+        pc1m[j] = 1 if key[l >> 3] & bytebit[m] else 0
     for i in range(16):
-        if decrypt:
-            m = (15 - i) << 1
-        else:
-            m = i << 1
+        m = (15 - i) << 1 if decrypt else i << 1
         n = m + 1
         kn[m] = kn[n] = 0
         for j in range(28):
             l = j + totrot[i]
-            if l < 28:
-                pcr[j] = pc1m[l]
-            else:
-                pcr[j] = pc1m[l - 28]
+            pcr[j] = pc1m[l] if l < 28 else pc1m[l - 28]
         for j in range(28, 56):
             l = j + totrot[i]
-            if l < 56:
-                pcr[j] = pc1m[l]
-            else:
-                pcr[j] = pc1m[l - 28]
+            pcr[j] = pc1m[l] if l < 56 else pc1m[l - 28]
         for j in range(24):
             if pcr[pc2[j]]:
                 kn[m] |= bigbyte[j]

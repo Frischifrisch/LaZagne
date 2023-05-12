@@ -39,9 +39,8 @@ def are_masterkeys_retrieved():
 def manage_response(ok, msg):
     if ok:
         return msg
-    else:
-        print_debug('DEBUG', u'{msg}'.format(msg=msg))
-        return False
+    print_debug('DEBUG', u'{msg}'.format(msg=msg))
+    return False
 
 
 class UserDpapi(object):

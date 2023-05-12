@@ -20,10 +20,7 @@ class KeeThief():
     def check_if_version_2x(self, full_exe_path):
         dirname = os.path.dirname(full_exe_path.decode(sys.getfilesystemencoding()))
         # version 1 use an ini configuration file
-        if os.path.exists(os.path.join(dirname, u'KeePass.config.xml')):
-            return True
-        else:
-            return False
+        return bool(os.path.exists(os.path.join(dirname, u'KeePass.config.xml')))
 
     def run(self, full_exe_path):
         if self.check_if_version_2x(full_exe_path):

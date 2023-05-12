@@ -116,7 +116,9 @@ class _baseDes(object):
         if pad and padmode == PAD_PKCS5:
             raise ValueError("Cannot use a pad character with PAD_PKCS5")
         if IV and len(IV) != self.block_size:
-            raise ValueError("Invalid Initial Value (IV), must be a multiple of " + str(self.block_size) + " bytes")
+            raise ValueError(
+                f"Invalid Initial Value (IV), must be a multiple of {self.block_size} bytes"
+            )
 
         # Set the passed in variables
         self._mode = mode
@@ -165,7 +167,9 @@ class _baseDes(object):
     def setIV(self, IV):
         """Will set the Initial Value, used in conjunction with CBC mode"""
         if not IV or len(IV) != self.block_size:
-            raise ValueError("Invalid Initial Value (IV), must be a multiple of " + str(self.block_size) + " bytes")
+            raise ValueError(
+                f"Invalid Initial Value (IV), must be a multiple of {str(self.block_size)} bytes"
+            )
         IV = self._guardAgainstUnicode(IV)
         self._iv = IV
 
@@ -186,8 +190,9 @@ class _baseDes(object):
                 # Get the default padding.
                 pad = self.getPadding()
             if not pad:
-                raise ValueError("Data must be a multiple of " + str(
-                    self.block_size) + " bytes in length. Use padmode=PAD_PKCS5 or set the pad character.")
+                raise ValueError(
+                    f"Data must be a multiple of {str(self.block_size)} bytes in length. Use padmode=PAD_PKCS5 or set the pad character."
+                )
             data += (self.block_size - (len(data) % self.block_size)) * pad
 
         elif padmode == PAD_PKCS5:
@@ -215,13 +220,10 @@ class _baseDes(object):
                 pad = self.getPadding()
             if pad:
                 data = data[:-self.block_size] + \
-                       data[-self.block_size:].rstrip(pad)
+                           data[-self.block_size:].rstrip(pad)
 
         elif padmode == PAD_PKCS5:
-            if _pythonMajorVersion < 3:
-                pad_len = ord(data[-1])
-            else:
-                pad_len = data[-1]
+            pad_len = ord(data[-1]) if _pythonMajorVersion < 3 else data[-1]
             data = data[:-pad_len]
 
         return data
@@ -232,14 +234,13 @@ class _baseDes(object):
         if _pythonMajorVersion < 3:
             if isinstance(data, unicode):  # noqa
                 raise ValueError("pyDes can only work with bytes, not Unicode strings.")
-        else:
-            if isinstance(data, str):
-                # Only accept ascii unicode values.
-                try:
-                    return data.encode('ascii')
-                except UnicodeEncodeError:
-                    pass
-                raise ValueError("pyDes can only work with encoded strings, not Unicode.")
+        elif isinstance(data, str):
+            # Only accept ascii unicode values.
+            try:
+                return data.encode('ascii')
+            except UnicodeEncodeError:
+                pass
+            raise ValueError("pyDes can only work with encoded strings, not Unicode.")
         return data
 
 
@@ -423,29 +424,20 @@ class des(_baseDes):
         result = [0] * l
         pos = 0
         for ch in data:
-            i = 7
-            while i >= 0:
-                if ch & (1 << i) != 0:
-                    result[pos] = 1
-                else:
-                    result[pos] = 0
+            for i in range(7, -1, -1):
+                result[pos] = 1 if ch & (1 << i) != 0 else 0
                 pos += 1
-                i -= 1
-
         return result
 
     def __BitList_to_String(self, data):
         """Turn the list of bits -> data, into a string"""
         result = []
-        pos = 0
         c = 0
-        while pos < len(data):
+        for pos in range(len(data)):
             c += data[pos] << (7 - (pos % 8))
             if (pos % 8) == 7:
                 result.append(c)
                 c = 0
-            pos += 1
-
         if _pythonMajorVersion < 3:
             return ''.join([chr(c) for c in result])
         else:
@@ -460,11 +452,10 @@ class des(_baseDes):
     def __create_sub_keys(self):
         """Create the 16 subkeys K[1] to K[16] from the given key"""
         key = self.__permutate(des.__pc1, self.__String_to_BitList(self.getKey()))
-        i = 0
         # Split into Left and Right sections
         self.L = key[:28]
         self.R = key[28:]
-        while i < 16:
+        for i in range(16):
             j = 0
             # Perform circular left shifts
             while j < des.__left_rotations[i]:
@@ -478,8 +469,6 @@ class des(_baseDes):
 
             # Create one of the 16 subkeys through pc2 permutation
             self.Kn[i] = self.__permutate(des.__pc2, self.L + self.R)
-
-            i += 1
 
     # Main part of the encryption algorithm, the number cruncher :)
     def __des_crypt(self, block, crypt_type):
@@ -497,8 +486,7 @@ class des(_baseDes):
             iteration = 15
             iteration_adjustment = -1
 
-        i = 0
-        while i < 16:
+        for _ in range(16):
             # Make a copy of R[i-1], this will later become L[i]
             tempR = self.R[:]
 
@@ -509,20 +497,9 @@ class des(_baseDes):
             self.R = list(map(lambda x, y: x ^ y, self.R, self.Kn[iteration]))
             B = [self.R[:6], self.R[6:12], self.R[12:18], self.R[18:24], self.R[24:30], self.R[30:36], self.R[36:42],
                  self.R[42:]]
-            # Optimization: Replaced below commented code with above
-            # j = 0
-            # B = []
-            # while j < len(self.R):
-            #   self.R[j] = self.R[j] ^ self.Kn[iteration][j]
-            #   j += 1
-            #   if j % 6 == 0:
-            #       B.append(self.R[j-6:j])
-
-            # Permutate B[1] to B[8] using the S-Boxes
-            j = 0
             Bn = [0] * 32
             pos = 0
-            while j < 8:
+            for j in range(8):
                 # Work out the offsets
                 m = (B[j][0] << 1) + B[j][5]
                 n = (B[j][1] << 3) + (B[j][2] << 2) + (B[j][3] << 1) + B[j][4]
@@ -537,8 +514,6 @@ class des(_baseDes):
                 Bn[pos + 3] = v & 1
 
                 pos += 4
-                j += 1
-
             # Permutate the concatination of B[1] to B[8] (Bn)
             self.R = self.__permutate(des.__p, Bn)
 
@@ -553,7 +528,6 @@ class des(_baseDes):
             # L[i] becomes R[i - 1]
             self.L = tempR
 
-            i += 1
             iteration += iteration_adjustment
 
         # Final permutation of R[16]L[16]
@@ -570,13 +544,19 @@ class des(_baseDes):
         if len(data) % self.block_size != 0:
             if crypt_type == des.DECRYPT:  # Decryption must work on 8 byte blocks
                 raise ValueError(
-                    "Invalid data length, data must be a multiple of " + str(self.block_size) + " bytes\n.")
+                    f"Invalid data length, data must be a multiple of {str(self.block_size)}"
+                    + " bytes\n."
+                )
             if not self.getPadding():
-                raise ValueError("Invalid data length, data must be a multiple of " + str(
-                    self.block_size) + " bytes\n. Try setting the optional padding character")
+                raise ValueError(
+                    (
+                        f"Invalid data length, data must be a multiple of {str(self.block_size)}"
+                        + " bytes\n. Try setting the optional padding character"
+                    )
+                )
             else:
                 data += (self.block_size - (len(data) % self.block_size)) * self.getPadding()
-            # print "Len of data: %f" % (len(data) / self.block_size)
+                # print "Len of data: %f" % (len(data) / self.block_size)
 
         if self.getMode() == CBC:
             if self.getIV():

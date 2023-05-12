@@ -24,19 +24,18 @@ class Wsl(ModuleInfo):
         new_path = os.path.join(constant.profile['LOCALAPPDATA'], u'Packages\\')
         if os.path.exists(new_path):
             for root, dirs, files in os.walk(new_path):
-                for file in files:
-                    if file == "shadow":
-                        shadow_files_list.append(os.path.join(root, file))
-
+                shadow_files_list.extend(
+                    os.path.join(root, file) for file in files if file == "shadow"
+                )
         # Extract the hashes
         for shadow in shadow_files_list:
             with open(shadow, 'r') as shadow_file:
-                for line in shadow_file.readlines():
+                for line in shadow_file:
                     user_hash = line.replace('\n', '')
                     line = user_hash.split(':')
 
                     # Check if a password is defined
-                    if not line[1] in ['x', '*', '!']:
+                    if line[1] not in ['x', '*', '!']:
                         pwd_found.append({
                             'Hash': ':'.join(user_hash.split(':')[1:]),
                             'Login': user_hash.split(':')[0].replace('\n', '')

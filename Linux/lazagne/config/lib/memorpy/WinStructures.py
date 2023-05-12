@@ -17,12 +17,7 @@
 from ctypes import Structure, c_long, c_int, c_uint, c_char, c_void_p, c_ubyte, c_ushort, c_ulong, c_ulonglong, windll, POINTER, sizeof, c_bool, c_size_t, c_longlong
 from ctypes.wintypes import *
 
-if sizeof(c_void_p) == 8:
-    ULONG_PTR = c_ulonglong
-else:
-    ULONG_PTR = c_ulong
-
-
+ULONG_PTR = c_ulonglong if sizeof(c_void_p) == 8 else c_ulong
 class SECURITY_DESCRIPTOR(Structure): 
     _fields_ = [
         ('SID', DWORD),
@@ -42,7 +37,6 @@ class MEMORY_BASIC_INFORMATION(Structure):
      ('Protect', DWORD),
      ('Type', DWORD)]
 
-# https://msdn.microsoft.com/fr-fr/library/windows/desktop/aa366775(v=vs.85).aspx
 class MEMORY_BASIC_INFORMATION64(Structure):
     _fields_ = [('BaseAddress', c_ulonglong),
      ('AllocationBase', c_ulonglong),

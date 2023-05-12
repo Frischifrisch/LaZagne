@@ -38,8 +38,7 @@ class EyeCON(ModuleInfo):
         for path in paths:
             try:
                 hkey = OpenKey(path[1], path[2])
-                reg_key = winreg.QueryValueEx(hkey, path[3])[0]
-                if reg_key:
+                if reg_key := winreg.QueryValueEx(hkey, path[3])[0]:
                     hosts += [reg_key]
             except Exception:
                 # skipping if value doesn't exist

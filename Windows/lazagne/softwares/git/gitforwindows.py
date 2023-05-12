@@ -30,11 +30,19 @@ class GitForWindows(ModuleInfo):
                 for cred in f:
                     if len(cred) > 0:
                         parts = urlparse(cred)
-                        pwd_found.append((
-                            unquote(parts.geturl().replace(parts.username + ":" + parts.password + "@", "").strip()),
-                            unquote(parts.username),
-                            unquote(parts.password)
-                        ))
+                        pwd_found.append(
+                            (
+                                unquote(
+                                    parts.geturl()
+                                    .replace(
+                                        f"{parts.username}:{parts.password}@", ""
+                                    )
+                                    .strip()
+                                ),
+                                unquote(parts.username),
+                                unquote(parts.password),
+                            )
+                        )
 
         return pwd_found
 

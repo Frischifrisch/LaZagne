@@ -55,31 +55,35 @@ class Robomongo(ModuleInfo):
                     }
                     crd = connection["credentials"][0]
                     if crd.get("enabled"):
-                        creds.update({
+                        creds |= {
                             "AuthMode": "CREDENTIALS",
                             "DatabaseName": crd["databaseName"],
                             "AuthMechanism": crd["mechanism"],
                             "Login": crd["userName"],
-                            "Password": crd["userPassword"]
-                        })
+                            "Password": crd["userPassword"],
+                        }
                     else:
-                        creds.update({
+                        creds |= {
                             "Host": connection["ssh"]["host"],
                             "Port": connection["ssh"]["port"],
-                            "Login": connection["ssh"]["userName"]
-                        })
+                            "Login": connection["ssh"]["userName"],
+                        }
                         if connection["ssh"]["enabled"] and connection["ssh"]["method"] == "password":
-                            creds.update({
+                            creds |= {
                                 "AuthMode": "SSH_CREDENTIALS",
-                                "Password": connection["ssh"]["userPassword"]
-                            })
+                                "Password": connection["ssh"]["userPassword"],
+                            }
                         else:
-                            creds.update({
+                            creds |= {
                                 "AuthMode": "SSH_PRIVATE_KEY",
                                 "Passphrase": connection["ssh"]["passphrase"],
-                                "PrivateKey": self.read_file_content(connection["ssh"]["privateKeyFile"]),
-                                "PublicKey": self.read_file_content(connection["ssh"]["publicKeyFile"])
-                            })
+                                "PrivateKey": self.read_file_content(
+                                    connection["ssh"]["privateKeyFile"]
+                                ),
+                                "PublicKey": self.read_file_content(
+                                    connection["ssh"]["publicKeyFile"]
+                                ),
+                            }
                     repos_creds.append(creds)
                 except Exception as e:
                     self.error(u"Cannot retrieve connections credentials '{error}'".format(error=e))

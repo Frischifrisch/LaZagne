@@ -30,7 +30,7 @@ class SQLDeveloper(ModuleInfo):
 
     def get_derived_key(self, password, salt, count):
         key = bytearray(password) + salt
-        for i in range(count):
+        for _ in range(count):
             m = hashlib.md5(key)
             key = m.digest()
         return (key[:8], key[8:])

@@ -31,7 +31,7 @@ class MavenRepositories(ModuleInfo):
                 if master_password_node is not None:
                     master_password = master_password_node.text
             except Exception as e:
-                self.error(u"Cannot retrieve master password '%s'" % e)
+                self.error(f"Cannot retrieve master password '{e}'")
                 master_password = None
 
         return master_password
@@ -49,17 +49,17 @@ class MavenRepositories(ModuleInfo):
         if os.path.isfile(maven_settings_file_location):
             try:
                 settings = ElementTree.parse(maven_settings_file_location).getroot()
-                server_nodes = settings.findall(".//%sserver" % self.settings_namespace)
+                server_nodes = settings.findall(f".//{self.settings_namespace}server")
                 for server_node in server_nodes:
                     creds = {}
                     for child_node in server_node:
                         tag_name = child_node.tag.replace(self.settings_namespace, "")
                         if tag_name in self.nodes_to_extract:
                             creds[tag_name] = child_node.text.strip()
-                    if len(creds) > 0:
+                    if creds:
                         repos_creds.append(creds)
             except Exception as e:
-                self.error(u"Cannot retrieve repositories credentials '%s'" % e)
+                self.error(f"Cannot retrieve repositories credentials '{e}'")
 
         return repos_creds
 

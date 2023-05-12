@@ -31,7 +31,7 @@ class DbVisualizer(ModuleInfo):
     def get_derived_key(self, password, salt, count):
         key = bytearray(password) + salt
 
-        for i in range(count):
+        for _ in range(count):
             m = hashlib.md5(key)
             key = m.digest()
         return (key[:8], key[8:])
@@ -71,11 +71,11 @@ class DbVisualizer(ModuleInfo):
                         elem = e.find('UrlVariables')
                         for ee in elem.getchildren():
                             for ele in ee.getchildren():
-                                if 'Server' == ele.attrib['UrlVariableName']:
+                                if ele.attrib['UrlVariableName'] == 'Server':
                                     values['Host'] = str(ele.text)
-                                if 'Port' == ele.attrib['UrlVariableName']:
+                                if ele.attrib['UrlVariableName'] == 'Port':
                                     values['Port'] = str(ele.text)
-                                if 'SID' == ele.attrib['UrlVariableName']:
+                                if ele.attrib['UrlVariableName'] == 'SID':
                                     values['SID'] = str(ele.text)
                     except Exception:
                         pass

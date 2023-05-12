@@ -19,8 +19,7 @@ def get_token_info(hToken):
     TokenUser = 1
 
     if GetTokenInformation(hToken, TokenUser, byref(TOKEN_USER()), 0, byref(dwSize)) == 0:
-        address = LocalAlloc(0x0040, dwSize)
-        if address:
+        if address := LocalAlloc(0x0040, dwSize):
             GetTokenInformation(hToken, TokenUser, address, dwSize, byref(dwSize))
             pToken_User = cast(address, POINTER(TOKEN_USER))
             if pToken_User.contents.User.Sid:
@@ -37,7 +36,7 @@ def enable_privilege(privilegeStr, hToken=None):
     """
     Enable Privilege on token, if no token is given the function gets the token of the current process.
     """
-    if hToken == None:
+    if hToken is None:
         hToken = HANDLE(INVALID_HANDLE_VALUE)
         if not hToken:
             return False
@@ -119,10 +118,10 @@ def get_sid_token(token_sid):
                         hToken = HANDLE(INVALID_HANDLE_VALUE)
                         if hToken:
                             OpenProcessToken(hProcess, tokenprivs, byref(hToken))
-                            if hToken:
-                                print_debug('INFO', u'Using PID: ' + str(sid[0]))
-                                CloseHandle(hProcess)
-                                return hToken
+                        if hToken:
+                            print_debug('INFO', f'Using PID: {str(sid[0])}')
+                            CloseHandle(hProcess)
+                            return hToken
 
                     # CloseHandle(hToken)
                     CloseHandle(hProcess)
@@ -138,13 +137,12 @@ def get_sid_token(token_sid):
         try:
             hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, False, int(pid))
             if hProcess:
-                hToken = HANDLE(INVALID_HANDLE_VALUE)
-                if hToken:
+                if hToken := HANDLE(INVALID_HANDLE_VALUE):
                     OpenProcessToken(hProcess, tokenprivs, byref(hToken))
                     if hToken:
                         sid, owner = get_token_info(hToken)
                         if sid == token_sid:
-                            print_debug('INFO', u'Impersonate token from pid: ' + str(pid))
+                            print_debug('INFO', f'Impersonate token from pid: {str(pid)}')
                             CloseHandle(hProcess)
                             return hToken
                     CloseHandle(hToken)
@@ -159,10 +157,8 @@ def impersonate_sid(sid, close=True):
     """
     Try to impersonate an SID
     """
-    hToken = get_sid_token(sid)
-    if hToken:
-        hTokendupe = impersonate_token(hToken)
-        if hTokendupe:
+    if hToken := get_sid_token(sid):
+        if hTokendupe := impersonate_token(hToken):
             if close:
                 CloseHandle(hTokendupe)
             return hTokendupe
@@ -193,8 +189,7 @@ def impersonate_token(hToken):
     Impersonate token - Need admin privilege
     """
     if get_debug_privilege():
-        hTokendupe = HANDLE(INVALID_HANDLE_VALUE)
-        if hTokendupe:
+        if hTokendupe := HANDLE(INVALID_HANDLE_VALUE):
             SecurityImpersonation = 2
             TokenPrimary = 1
             if DuplicateTokenEx(hToken, TOKEN_ALL_ACCESS, None, SecurityImpersonation, TokenPrimary, byref(hTokendupe)):

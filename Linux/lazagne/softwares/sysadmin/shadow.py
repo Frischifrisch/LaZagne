@@ -64,28 +64,27 @@ class Shadow(ModuleInfo):
 
     def run(self):
         # Need admin privilege
-        if os.getuid() == 0:
-            pwd_found = []
-            with open('/etc/shadow', 'r') as shadow_file:
-                for line in shadow_file.readlines():
-                    user_hash = line.replace('\n', '')
-                    line = user_hash.split(':')
+        if os.getuid() != 0:
+            return
+        pwd_found = []
+        with open('/etc/shadow', 'r') as shadow_file:
+            for line in shadow_file:
+                user_hash = line.replace('\n', '')
+                line = user_hash.split(':')
 
                     # Check if a password is defined
-                    if not line[1] in ['x', '*', '!']:
-                        user = line[0]
-                        crypt_pwd = line[1]
+                if line[1] not in ['x', '*', '!']:
+                    user = line[0]
+                    crypt_pwd = line[1]
 
-                        # Try dictionary attack
-                        result = self.dictionary_attack(user, crypt_pwd)
-                        if result:
-                            pwd_found.append(result)
+                    if result := self.dictionary_attack(user, crypt_pwd):
+                        pwd_found.append(result)
 
-                        else:
-                            # No clear text password found - save hash
-                            pwd_found.append({
-                                'Hash': ':'.join(user_hash.split(':')[1:]),
-                                'Login': user_hash.split(':')[0].replace('\n', '')
-                            })
+                    else:
+                        # No clear text password found - save hash
+                        pwd_found.append({
+                            'Hash': ':'.join(user_hash.split(':')[1:]),
+                            'Login': user_hash.split(':')[0].replace('\n', '')
+                        })
 
-                return pwd_found
+            return pwd_found

